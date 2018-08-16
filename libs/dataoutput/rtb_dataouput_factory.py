@@ -4,5 +4,5 @@ from libs.dataoutput.rtb_dataoutput import RTBDataOutput
 
 class RTBDataOutputFactory(DataOutputFactory):
 
-    def get_dataout(self,job):
+    def get_dataoutput(self,job):
         return RTBDataOutput()

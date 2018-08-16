@@ -10,10 +10,12 @@ class LockMe:
 
     def try_lock(self):
         try:
+            logger.debug("start try lock")
             if self._file is None:
                 self._file = open(__file__, 'a')
 
             fcntl.lockf(self._file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            logger.debug("finish try lock")
             return True
         except OSError as e:
             self._safe_close()

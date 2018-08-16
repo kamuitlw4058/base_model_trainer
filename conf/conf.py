@@ -26,7 +26,11 @@ PACKAGE_NAME = os.path.basename(CURRENT_WORK_DIR)
 
 JOB_FILE_NAME = 'job.json'
 
-RTB_ALL_TABLE_NAME='rtb_all2'
+RTB_ALL_TABLE_NAME = 'rtb_all2'
+
+CLICKHOUSE_URL_TEMPLATE = 'clickhouse://{}/zampda'
+
+PYCHARM = False
 
 
 class JOB_ROOT_DIR:

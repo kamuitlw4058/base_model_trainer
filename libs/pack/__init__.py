@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 import os
 import zipfile
 from libs.env.hdfs import hdfs
+from libs.env import debug
 
 
 LIB_NAME = 'libs'
@@ -29,7 +30,7 @@ def zip_dir(src_dir, dst_name, new_root_name=None, ignore_dir=['__pycache__']):
             zipf.write(os.path.join(root, file), arcname)
     zipf.close()
 
-
+@debug.pycharm_skip
 def pack_libs(overwrite = True):
     path = os.path.join(os.getcwd(), LIB_NAME)
     zip_path = f'{LIB_NAME}.zip'

@@ -104,7 +104,8 @@ class FeatureEngineer:
         # write data to hdfs
         for df, subdir in [(train_res, 'train'), (test_res, 'test')]:
             logger.info('[%s] number of %s data partitions %d', self._job_id, subdir, df.rdd.getNumPartitions())
-            runtime.data_schema = to_hdfs(df, os.path.join(runtime.hdfs_dir, subdir)), self._category_feature + self._multi_value_category_feature)
+            runtime.data_schema = to_hdfs(df, os.path.join(runtime.hdfs_dir, subdir)),
+            #self._category_feature + self._multi_value_category_feature)
 
         logging.info('[%s] finish prepare data', self._job_id)
 

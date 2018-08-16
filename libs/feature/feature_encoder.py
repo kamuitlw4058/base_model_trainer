@@ -5,3 +5,7 @@ class FeatureEncoder(ABC):
     @abstractmethod
     def encoder(self,raw, features,multi_value_feature):
         return
+
+    @abstractmethod
+    def feature_dim(self):
+        return

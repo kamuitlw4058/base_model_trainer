@@ -4,7 +4,7 @@ from abc import ABC,abstractmethod
 class FeatureEncoderFactory(ABC):
 
     @abstractmethod
-    def getFeatureEncoder(self,job):
+    def get_feature_encoder(self):
         """read from soure"""
         return
 

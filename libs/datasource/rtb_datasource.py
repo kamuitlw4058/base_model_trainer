@@ -1,7 +1,181 @@
+import logging
+logger = logging.getLogger(__name__)
+
 from libs.datasource.datasource import DataSource
+import random
+import pandas as pd
+from sqlalchemy import create_engine
+from conf.clickhouse import hosts
+from libs.dataio.sql import SQL
+from conf.conf import MAX_POS_SAMPLE, CLK_LIMIT
+from libs.env.spark import spark_session,SparkClickhouseReader
+from libs.feature.define import get_raw_columns
+from libs.feature.define import get_bidding_feature, context_feature, user_feature, user_cap_feature
+from libs.feature.cleaner import clean_data
+from libs.feature import udfs
+
+_win_filter = ['TotalErrorCode = 0', 'Win_Timestamp > 0']
+
+_clk_filters = ['notEmpty(Click.Timestamp) = 1'] + _win_filter
+
+_imp_filters = ['notEmpty(Click.Timestamp) = 0'] + _win_filter
 
 
 class RTBDataSource(DataSource):
 
-    def get_spark_session(self):
-        return spark,spark_executor_num
+    def __init__(self,job_id,local_dir,filters,pos_proportion,neg_proportion,url_template,table,account,vendor):
+        self._url_template = url_template
+        self._url =   self._url_template.format(random.choice(hosts))
+        self._engine = create_engine(self._url)
+        self._filters = filters
+        self._neg_proportion = neg_proportion
+        self._pos_proportion = pos_proportion
+        self._table = table
+        self._job_id = job_id
+        self._local_dir = local_dir
+        self._account = account
+        self._vendor = vendor
+        self._raw_count = None
+        self._executor_num = None
+        self._clk_num = None
+        self._imp_num = None
+
+    def _get_clk_imp(self, filters):
+        cols = [
+            'sum(notEmpty(Click.Timestamp)) as clk',
+            'sum(notEmpty(Impression.Timestamp)) as imp'
+        ]
+        sql = SQL()
+        q = sql.table('rtb_all').select(cols).where(filters).to_string()
+
+        num = pd.read_sql(q, self._engine)
+        if num.empty:
+            clk_num, imp_num = 0, 0
+        else:
+            clk_num, imp_num = num.clk.sum(), num.imp.sum()
+
+
+        return clk_num, imp_num
+
+
+
+    def _get_sample_ratio(self,clk_num,imp_num):
+
+        pos_ratio = self._pos_proportion
+        neg_ratio = self._neg_proportion * clk_num / (imp_num - clk_num)
+
+        if clk_num > MAX_POS_SAMPLE:
+            pos_ratio = self._pos_proportion * MAX_POS_SAMPLE / clk_num
+            neg_ratio = self._neg_proportion * MAX_POS_SAMPLE / (imp_num - clk_num)
+
+        # ensure ratio not larger than 1
+        pos_ratio = min(pos_ratio, 1)
+        neg_ratio = min(neg_ratio, 1)
+
+        return pos_ratio, neg_ratio
+
+    @staticmethod
+    def _get_executor_num(estimated_samples):
+        if estimated_samples < 40 * 10000:
+            return 8
+        elif estimated_samples < 80 * 10000:
+            return 16
+        elif estimated_samples < 160 * 10000:
+            return 32
+        elif estimated_samples < 320 * 10000:
+            return 48
+        else:
+            return 64
+
+    @staticmethod
+    def _build_feature_datas_sql(filters,pos_ratio,neg_ratio,table):
+        cols = get_raw_columns()
+        posSql = SQL()
+        posSql.table(table).select(cols).sample(pos_ratio).where(filters + _clk_filters)
+        negSql = SQL()
+        negSql.table(table).select(cols).sample(neg_ratio).where(filters + _imp_filters)
+        posSql.union([negSql])
+        sql = posSql.to_string()
+        return sql
+
+    @staticmethod
+    def expend_fields(raw, ext_feature):
+        # append fields
+        from functools import reduce
+        ext_dict = 'ext_dict'
+        opts = [
+            ('weekday', udfs.weekday('ts')),
+            ('is_weekend', udfs.is_weekend('ts')),
+            (ext_dict, udfs.to_ext_dict('ext_key', 'ext_value')),
+        ]
+
+        raw = reduce(lambda d, args: d.withColumn(*args), opts, raw)
+
+        # extract cap feature & bidding feature from ext_dict
+        raw = reduce(lambda df, c: df.withColumn(c, df[ext_dict].getItem(c)), ext_feature, raw)
+
+        return raw.drop(ext_dict, 'ext_key', 'ext_value')
+
+    def _get_features(self,raw):
+        if self._account and self._vendor:
+            bidding_feature = get_bidding_feature(self.account, self.vendor)
+            ext_feature = user_cap_feature + bidding_feature
+        else:
+            ext_feature = user_cap_feature
+        raw = RTBDataSource.expend_fields(raw, ext_feature)
+
+        raw = clean_data(self._job_id, raw, self._spark)
+        logger.info('[%s] columns %s', self._job_id, raw.schema.names)
+
+        return  raw, user_feature + context_feature + ext_feature
+
+    def _get_multi_value_feature(self):
+        return [
+            'AppCategory',
+            'segment'
+        ]
+
+    def get_data_size(self):
+        return self._raw_count
+
+    def get_executor_num(self):
+        return self._executor_num
+
+    def get_clk_imp(self):
+        return self._clk_num,self._imp_num
+
+
+    def get_feature_datas(self):
+        clk_num, imp_num = self._get_clk_imp(self._filters)
+        self._clk_num ,self._imp_num = clk_num,imp_num
+
+        logger.info('[%s] clk=%d, imp=%d', self._job_id, clk_num, imp_num)
+
+        if clk_num < CLK_LIMIT:
+            raise RuntimeError(f'[{self._job_id}] too fewer clk({clk_num} < {CLK_LIMIT})')
+
+        pos_ratio, neg_ratio = self._get_sample_ratio(clk_num,imp_num)
+
+        logger.info('[%s] pos_ratio = %.4f neg_ratio = %.4f', self._job_id, pos_ratio, neg_ratio)
+
+        estimated_samples = int(clk_num * pos_ratio
+                                + (imp_num - clk_num) * neg_ratio)
+        logger.info(f'[{self._job_id}] estimated samples = {estimated_samples}')
+
+        spark_executor_num = RTBDataSource._get_executor_num(estimated_samples)
+
+        self._executor_num = spark_executor_num
+
+        spark = spark_session(self._job_id,spark_executor_num,self._local_dir)
+
+        spark_clickhouse_reader = SparkClickhouseReader(spark,self._url)
+
+        sql = RTBDataSource._build_feature_datas_sql(self._filters,pos_ratio,neg_ratio,self._table)
+
+        raw =  spark_clickhouse_reader.read_sql_parallel(sql,spark_executor_num)
+
+        raw,features = self._get_features(raw)
+
+        self._raw_count = raw.count()
+
+        return raw,features,self._get_multi_value_feature()

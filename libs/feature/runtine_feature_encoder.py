@@ -13,6 +13,7 @@ class RuntineFeatureEncoder(FeatureEncoder):
         self._vocabulary = None
         self._category_feature = []
         self._multi_value_category_feature = []
+        self._dim = -1
 
     def encoder(self,raw, features,multi_value_category_feature,train_ratio=0.9,test_ratio=0.1):
 
@@ -40,7 +41,10 @@ class RuntineFeatureEncoder(FeatureEncoder):
 
         self._model = pipeline.fit(train)
 
+        self._extract_vocabulary()
+
         train_res = self._model.transform(train)
+
         # 这边使用训练集的转换模型去转换测试集。
         test_res = self._model.transform(test)
 
@@ -50,8 +54,7 @@ class RuntineFeatureEncoder(FeatureEncoder):
             raise RuntimeError(f'feature vector size not match,'
                                f' real({v.size}) != calc({self.feature_dim()})')
 
-
-        return train_res, test_res,self._extract_vocabulary(),self.feature_dim(),self.get_featue_names()
+        return train_res, test_res
 
     def get_featue_names(self):
         return self._category_feature + self._multi_value_category_feature
@@ -77,7 +80,8 @@ class RuntineFeatureEncoder(FeatureEncoder):
         return vocabulary
 
     def feature_dim(self):
-        dim = 0
-        for feature in self._vocabulary:
-            dim += len(feature['value'])
-        return dim
+        if self._dim == -1:
+            self._dim = 0
+            for feature in self._vocabulary:
+                self._dim += len(feature['value'])
+        return self._dim

@@ -1,8 +1,10 @@
 from abc import ABC,abstractmethod
 
-
-class DataOutputFactory(ABC):
+class PredictorFactory(ABC):
 
     @abstractmethod
-    def get_dataoutput(self,job):
+    def get_predictor(self):
         return
+
+
+
