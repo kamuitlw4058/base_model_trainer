@@ -9,21 +9,11 @@ logger = logging.getLogger(__name__)
 
 import os
 from collections import namedtuple
-import numpy as np
 from datetime import datetime
-from conf.conf import JOB_FILE_NAME
-from libs.task import init_task_dir, get_worker_num, clean_task_dir
-from libs.dataio.persist import write_desc
-from libs.model.histogram_equalization import HistogramEqualization
-from libs.distributed.train.driver import Trainer
-from libs.distributed.prediction.driver import Predictor
-from libs.dataio.deploy import sender_all
-from libs.env.hdfs import hdfs
-from conf.conf import MAX_POS_SAMPLE, CLK_LIMIT
 from libs.utilis.time_profile import TimeMonitor
-from libs.dataio.rtb_reader import RTBReader
-from libs.env.spark import spark_session
-from libs.feature.feature_encoder import FeatureEncoder
+from libs.job.feature_job_manager_imp import FeatureJobManger
+from libs.task import init_task_dir
+
 
 NEED_PREPARE_DATA = True
 
@@ -37,9 +27,8 @@ def init_job(job):
 
 
 
-def prepare_data(job):
+def prepare_data(job,job_manager):
     job_id = job.job_name
-    job_manager = job.get_job_manager()
     try:
         timer = TimeMonitor()
 
@@ -73,7 +62,7 @@ def run(job):
     # init job context
     ##################################
     job_id = job.job_name
-    job_manager = job.get_job_manager()
+    job_manager = FeatureJobManger(job)
 
 
     try:
@@ -86,7 +75,7 @@ def run(job):
         ######################
 
         if NEED_PREPARE_DATA:
-            prepare_data(job)
+            prepare_data(job,job_manager)
         else:
             pass
             # hdfs_filename = os.path.join(runtime_conf.hdfs_dir, JOB_FILE_NAME)

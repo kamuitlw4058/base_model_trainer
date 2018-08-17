@@ -19,7 +19,15 @@ def parser(options):
 
     job.local_dir = os.path.join(JOB_ROOT_DIR.LOCAL_ROOT, job.job_name)
     job.hdfs_dir = os.path.join(JOB_ROOT_DIR.HDFS_ROOT, job.job_name)
-    job.filters = options.filters
+
+    with open(options.filters) as filter_file:
+        filter_str = filter_file.read()
+        logging.debug("filter_str:" + filter_str)
+        if filter_str:
+            job.filters = eval(filter_str)
+        else:
+            raise RuntimeError("get filter list failed! ")
+
     if not options.pos_proportion:
         job.pos_proportion = 1
     else:
@@ -30,8 +38,11 @@ def parser(options):
     else:
         job.neg_proportion = options.neg_proportion
 
-    job_manager = FeatureJobManger(job)
-    job.set_job_manager(job_manager)
+    job.learning_rate = options.learning_rate
+    job.l2 = options.l2
+
+
+
 
     return [job]
 

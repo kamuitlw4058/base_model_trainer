@@ -23,7 +23,7 @@ class  TFLRPredictor(Predictor):
 
     @staticmethod
     def get_model_name():
-        return "tflr-predictor"
+        return "tflr"
 
     def __init__(self, job_id, hdfs_dir,local_dir):
         self._job_id = job_id

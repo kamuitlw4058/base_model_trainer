@@ -20,17 +20,26 @@ _clk_filters = ['notEmpty(Click.Timestamp) = 1'] + _win_filter
 
 _imp_filters = ['notEmpty(Click.Timestamp) = 0'] + _win_filter
 
+_zamplus_rtb_all_database = 'zampda'
+
+_zamplus_rtb_local_database = 'zampda_local'
+
+#TODO:这边需要整理下，clickhouse jdbc链接和 clickhouse的直接链接url怎么进行管理。？？？
+
+_zamplus_rtb_local_url = f'jdbc:clickhouse://{random.choice(hosts)}/{_zamplus_rtb_local_database}'
 
 class RTBDataSource(DataSource):
 
-    def __init__(self,job_id,local_dir,filters,pos_proportion,neg_proportion,url_template,table,account,vendor):
+    def __init__(self,job_id,local_dir,filters,pos_proportion,neg_proportion,url_template,all_table,local_table,account,vendor):
         self._url_template = url_template
-        self._url =   self._url_template.format(random.choice(hosts))
-        self._engine = create_engine(self._url)
+        self._url_all = self._url_template.format(random.choice(hosts),_zamplus_rtb_all_database)
+        self._url_local = self._url_template.format(random.choice(hosts),_zamplus_rtb_local_database)
+        self._engine = create_engine(self._url_all)
         self._filters = filters
         self._neg_proportion = neg_proportion
         self._pos_proportion = pos_proportion
-        self._table = table
+        self._all_table = all_table
+        self._local_table = local_table
         self._job_id = job_id
         self._local_dir = local_dir
         self._account = account
@@ -39,14 +48,17 @@ class RTBDataSource(DataSource):
         self._executor_num = None
         self._clk_num = None
         self._imp_num = None
+        self._spark = None
 
     def _get_clk_imp(self, filters):
+        logger.debug(filters)
         cols = [
             'sum(notEmpty(Click.Timestamp)) as clk',
             'sum(notEmpty(Impression.Timestamp)) as imp'
         ]
         sql = SQL()
-        q = sql.table('rtb_all').select(cols).where(filters).to_string()
+        q = sql.table(self._all_table).select(cols).where(filters).to_string()
+        logger.info("sql: " + q)
 
         num = pd.read_sql(q, self._engine)
         if num.empty:
@@ -99,6 +111,10 @@ class RTBDataSource(DataSource):
         return sql
 
     @staticmethod
+    def _get_jdbc_sql(sql):
+        return f"({sql})"
+
+    @staticmethod
     def expend_fields(raw, ext_feature):
         # append fields
         from functools import reduce
@@ -118,7 +134,7 @@ class RTBDataSource(DataSource):
 
     def _get_features(self,raw):
         if self._account and self._vendor:
-            bidding_feature = get_bidding_feature(self.account, self.vendor)
+            bidding_feature = get_bidding_feature(self._account, self._vendor)
             ext_feature = user_cap_feature + bidding_feature
         else:
             ext_feature = user_cap_feature
@@ -162,20 +178,30 @@ class RTBDataSource(DataSource):
                                 + (imp_num - clk_num) * neg_ratio)
         logger.info(f'[{self._job_id}] estimated samples = {estimated_samples}')
 
+        sql = RTBDataSource._build_feature_datas_sql(self._filters, pos_ratio, neg_ratio, self._local_table)
+        sql = RTBDataSource._get_jdbc_sql(sql)
+
+        logging.info(f'[{self._job_id}] get data sql: {sql}')
+
         spark_executor_num = RTBDataSource._get_executor_num(estimated_samples)
 
+        logging.info(f'[{self._job_id}] spark_executor_num: {spark_executor_num}')
         self._executor_num = spark_executor_num
 
         spark = spark_session(self._job_id,spark_executor_num,self._local_dir)
+        self._spark = spark
 
-        spark_clickhouse_reader = SparkClickhouseReader(spark,self._url)
+        spark_clickhouse_reader = SparkClickhouseReader(spark,_zamplus_rtb_local_url)
 
-        sql = RTBDataSource._build_feature_datas_sql(self._filters,pos_ratio,neg_ratio,self._table)
+        raw = spark_clickhouse_reader.read_sql_parallel(sql,spark_executor_num)
 
-        raw =  spark_clickhouse_reader.read_sql_parallel(sql,spark_executor_num)
+        logging.info(f'[{self._job_id}] start get features...')
 
-        raw,features = self._get_features(raw)
+        raw, features = self._get_features(raw)
+
+        raw.cache()
 
         self._raw_count = raw.count()
+        logging.info(f'[{self._job_id}] raw count: {self._raw_count}')
 
         return raw,features,self._get_multi_value_feature()

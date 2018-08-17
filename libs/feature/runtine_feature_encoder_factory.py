@@ -4,5 +4,5 @@ from libs.feature.runtine_feature_encoder import RuntineFeatureEncoder
 
 class RuntineFeatureEncoderFactory(FeatureEncoderFactory):
 
-    def get_feature_encoder(self, job):
+    def get_feature_encoder(self):
         return RuntineFeatureEncoder()

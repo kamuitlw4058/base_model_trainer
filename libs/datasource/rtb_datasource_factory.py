@@ -1,14 +1,17 @@
 from libs.datasource.datasource_factory import DataSoureFactory
 from libs.datasource.rtb_datasource import RTBDataSource
-from conf.conf import RTB_ALL_TABLE_NAME,CLICKHOUSE_URL_TEMPLATE
+from conf.conf import RTB_ALL_TABLE_NAME, RTB_LOCAL_TABLE_NAME,CLICKHOUSE_URL_TEMPLATE
 
 class RTBDataSourceFactory(DataSoureFactory):
 
     def _get_url_template(self):
         return CLICKHOUSE_URL_TEMPLATE
 
-    def _get_rtb_table_name(self):
+    def _get_rtb_all_table_name(self):
         return RTB_ALL_TABLE_NAME
+
+    def _get_rtb_local_table_name(self):
+        return RTB_LOCAL_TABLE_NAME
 
 
     def __init__(self,job):
@@ -20,7 +23,8 @@ class RTBDataSourceFactory(DataSoureFactory):
                                          job.pos_proportion,
                                          job.neg_proportion,
                                          self._get_url_template(),
-                                         self._get_rtb_table_name(),
+                                         self._get_rtb_all_table_name(),
+                                         self._get_rtb_local_table_name(),
                                          job.account,
                                          job.vendor)
 

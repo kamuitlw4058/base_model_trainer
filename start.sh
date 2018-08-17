@@ -1,0 +1,1 @@
+python bin/feature.py -a 12 -v 24 -n account_vender_last30_ctr

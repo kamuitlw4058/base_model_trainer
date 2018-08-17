@@ -94,6 +94,8 @@ class SparkClickhouseReader:
         self._url = url
 
     def read_sql_parallel(self,sql,repartition=None):
+
+        logger.info(f"spark session url:{self._url}")
         df = self._spark.read.jdbc(self._url, sql, properties=clickhouse.CONF)
         if repartition:
             df = df.repartition(repartition)

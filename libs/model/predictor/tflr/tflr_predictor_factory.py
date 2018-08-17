@@ -1,7 +1,6 @@
 from libs.model.predictor.tflr.tflr_predictor import TFLRPredictor
 from libs.model.predictor.predictor_factory import PredictorFactory
 
-from libs.job.feature_job import  FeatureJob
 
 class TFLRPredictorFactory(PredictorFactory):
 

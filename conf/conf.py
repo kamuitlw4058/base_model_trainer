@@ -26,13 +26,15 @@ PACKAGE_NAME = os.path.basename(CURRENT_WORK_DIR)
 
 JOB_FILE_NAME = 'job.json'
 
-RTB_ALL_TABLE_NAME = 'rtb_all2'
+RTB_ALL_TABLE_NAME = 'rtb_all'
 
-CLICKHOUSE_URL_TEMPLATE = 'clickhouse://{}/zampda'
+RTB_LOCAL_TABLE_NAME = 'rtb_local2'
+
+CLICKHOUSE_URL_TEMPLATE = 'clickhouse://{}/{}'
 
 PYCHARM = False
 
 
 class JOB_ROOT_DIR:
-    HDFS_ROOT = f'hdfs:///user/{os.environ.get("CTR_USER_NAME", "test")}/pctr_tflr'
+    HDFS_ROOT = f'hdfs:///user/{os.environ.get("CTR_USER_NAME", "test")}/pctr_feature'
     LOCAL_ROOT = os.path.abspath('./cache')
