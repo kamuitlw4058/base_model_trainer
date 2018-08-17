@@ -205,3 +205,12 @@ class RTBDataSource(DataSource):
         logging.info(f'[{self._job_id}] raw count: {self._raw_count}')
 
         return raw,features,self._get_multi_value_feature()
+
+    def close(self):
+        try:
+            if self._spark:
+                self._spark.stop()
+                logger.info('[%s] spark stopped', self._job_id)
+
+        except Exception as e:
+            logger.exception("close spark error!",e)

@@ -13,8 +13,12 @@ class EMR:
 
     def active_cluster_id(self, created_after):
         ret = self._emr.list_clusters(CreatedAfter=created_after, ClusterStates=['RUNNING', 'WAITING'])
-        cluster_id = ret['Clusters'][0]['Id']
-        return cluster_id
+        print(ret)
+        if len(ret['Clusters']) >0:
+            cluster_id = ret['Clusters'][0]['Id']
+            return cluster_id
+        else:
+            return None
 
     def master_public_ip(self, cluster_id):
         return self._emr.describe_cluster(ClusterId=cluster_id)['Cluster']['MasterPublicDnsName']

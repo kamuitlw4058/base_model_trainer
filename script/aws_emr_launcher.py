@@ -10,6 +10,10 @@ def update_hadoop_conf():
 
     emr = EMR()
     cluster_id = emr.active_cluster_id(datetime.today()-timedelta(days=2))
+    if not  cluster_id:
+        print("hasn't active cluster...")
+        return
+
     print(f'cluster id = {cluster_id}')
 
     master_ip = emr.master_public_ip(cluster_id)

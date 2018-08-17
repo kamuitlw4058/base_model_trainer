@@ -13,7 +13,7 @@ from libs.model.predictor.tflr.tflr_predictor_factory import TFLRPredictorFactor
 class FeatureJobManger(JobManager):
 
     @staticmethod
-    def get_batch_size(self, clk_num):
+    def get_batch_size( clk_num):
         batch_size = 0
         if clk_num < 10000:
             batch_size = 32
@@ -26,7 +26,7 @@ class FeatureJobManger(JobManager):
         return batch_size
 
     @staticmethod
-    def get_epoch_num(self, clk_num):
+    def get_epoch_num( clk_num):
         epoch = 0
         if clk_num < 10000:
             epoch = 10
@@ -58,7 +58,7 @@ class FeatureJobManger(JobManager):
         self._job = job
         self._dataoutput = RTBDataOutputFactory()
         self._datasource = RTBDataSourceFactory(job)
-        self._feature_encoder = RuntineFeatureEncoderFactory()
+        self._feature_encoder = RuntineFeatureEncoderFactory(job)
         self._trainer = TFLRTrainerFactory(job)
         self._predictor = TFLRPredictorFactory(job)
 

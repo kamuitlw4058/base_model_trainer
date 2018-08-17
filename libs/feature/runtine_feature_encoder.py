@@ -8,7 +8,8 @@ from libs.feature.multi_category_encoder import MultiCategoryEncoder, MultiCateg
 from libs.feature.feature_encoder import FeatureEncoder
 
 class RuntineFeatureEncoder(FeatureEncoder):
-    def __init__(self):
+    def __init__(self,job_id):
+        self._job_id  = job_id
         self._model = None
         self._vocabulary = None
         self._category_feature = []
@@ -33,9 +34,11 @@ class RuntineFeatureEncoder(FeatureEncoder):
         encoders = [OneHotEncoder(inputCol="{}_idx".format(c), outputCol="{}_vec".format(c), dropLast=True)
                     for c in self._category_feature]
 
-        multi_enc = [MultiCategoryEncoder(inputCol=i, outputCol=f'{i}_vec') for i in multi_value_category_feature]
+        self._multi_value_category_feature = multi_value_category_feature
 
-        vec_cols = ['{}_vec'.format(c) for c in self.get_featue_names()]
+        multi_enc = [MultiCategoryEncoder(inputCol=i, outputCol=f'{i}_vec') for i in self._multi_value_category_feature]
+
+        vec_cols = ['{}_vec'.format(c) for c in self.get_feature_names()]
         assembler = VectorAssembler(inputCols=vec_cols, outputCol='feature')
         pipeline = Pipeline(stages=string_indexers + encoders + multi_enc + [assembler])
 
@@ -56,7 +59,7 @@ class RuntineFeatureEncoder(FeatureEncoder):
 
         return train_res, test_res
 
-    def get_featue_names(self):
+    def get_feature_names(self):
         return self._category_feature + self._multi_value_category_feature
 
     def _extract_vocabulary(self):

@@ -20,6 +20,8 @@ def parser(options):
     job.local_dir = os.path.join(JOB_ROOT_DIR.LOCAL_ROOT, job.job_name)
     job.hdfs_dir = os.path.join(JOB_ROOT_DIR.HDFS_ROOT, job.job_name)
 
+
+    #TODO: 这边后续如何传入参数，数据格式，配置文件格式都需要确认
     with open(options.filters) as filter_file:
         filter_str = filter_file.read()
         logging.debug("filter_str:" + filter_str)

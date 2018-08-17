@@ -3,6 +3,8 @@ from libs.dataoutput.rtb_dataoutput import RTBDataOutput
 
 
 class RTBDataOutputFactory(DataOutputFactory):
+    def __init__(self):
+        self._output = RTBDataOutput()
 
-    def get_dataoutput(self,job):
-        return RTBDataOutput()
+    def get_dataoutput(self):
+        return self._output

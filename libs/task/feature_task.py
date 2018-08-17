@@ -29,6 +29,7 @@ def init_job(job):
 
 def prepare_data(job,job_manager):
     job_id = job.job_name
+    datasource = None
     try:
         timer = TimeMonitor()
 
@@ -45,7 +46,7 @@ def prepare_data(job,job_manager):
         dataoutput = job_manager.get_dataoutput()
 
         for df, subdir in [(train_res, 'train'), (test_res, 'test')]:
-            dataoutput.write_hdfs(df, os.path.join(job.hdfs_dir, subdir),feature_encoder.get_features_name())
+            dataoutput.write_hdfs(df, os.path.join(job.hdfs_dir, subdir),feature_encoder.get_feature_names())
 
         logger.info('[%s] finish to prepare data, time elapsed %.1f s.',
                     job_id, timer.elapsed_seconds())
@@ -54,6 +55,8 @@ def prepare_data(job,job_manager):
     except Exception as e:
         logger.exception(e)
         raise e
+    finally:
+        datasource.close()
 
 
 
@@ -104,7 +107,7 @@ def run(job):
         trainer = job_manager.get_trainer()
         trainer.train(epoch,batch_size,worker_num,input_dim,data_names[0])
 
-        model = trainer.train(data_names[0])
+
 
         #######################################
         # evaluate model performance
@@ -112,7 +115,7 @@ def run(job):
         job.status = 'auc'
 
         predictor = job_manager.get_predictor()
-        pred_results = predictor.predict(data_names)
+        pred_results = predictor.predict( worker_num,input_dim, data_names)
 
         train_auc, test_auc = predictor.evaluate_auc(pred_results)
         logger.info('[%s] train auc %.3f, test auc %.3f', job_id, train_auc, test_auc)

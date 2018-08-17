@@ -9,3 +9,7 @@ class FeatureEncoder(ABC):
     @abstractmethod
     def feature_dim(self):
         return
+
+    @abstractmethod
+    def get_feature_names(self):
+        return

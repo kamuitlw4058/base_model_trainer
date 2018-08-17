@@ -14,6 +14,11 @@ class DataSource(ABC):
     def get_executor_num(self):
         return
 
+    @abstractmethod
+    def close(self):
+        return
+
+
 
 
 

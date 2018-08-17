@@ -41,7 +41,7 @@ class TFLRTrainer(Trainer):
     def train(self, epoch,batch_size,worker_num,input_dim, data_name):
         logger.info('[%s] start train...', self._job_id)
 
-        self._xlearning_submit(data_name)
+        self._xlearning_submit(epoch,batch_size,worker_num,input_dim,data_name)
 
         hdfs_path = os.path.join(self._hdfs_dir, self.get_model_name())
         local_ckpt_dir = os.path.join(self._local_dir, self.get_model_name())

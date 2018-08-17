@@ -43,7 +43,7 @@ class  TFLRPredictor(Predictor):
             f'--input_dim={input_dim}',
             f'--data={",".join(data_names)}'
             ])
-        self._xlearning_submit(job_cmd, data_names)
+        self._xlearning_submit(job_cmd,worker_num, data_names)
 
         # get result to local dir
         results = []
