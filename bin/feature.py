@@ -19,6 +19,7 @@ logging.config.dictConfig(json.load(open('conf/logging.json')))
 logger = logging.getLogger(__name__)
 
 from conf import conf
+from datetime import datetime
 
 import libs.env.hadoop
 
@@ -65,9 +66,12 @@ if __name__ == '__main__':
     args_parser.add_argument('-j', '--job_name', dest='job_name', type=str, help='the name (eg. job_123)')
     args_parser.add_argument('-f', '--filter-file', dest='filters', type=str,required=True,help=' filter file path list of sql(eg: ')
     args_parser.add_argument('-c', '--conf_file', dest='conf_file', type=str, help='job conf file path')
-    args_parser.add_argument('-p', '--pos_proportion', dest='pos_proportion', type=int, default=1)
-    args_parser.add_argument('-e', '--neg_proportion', dest='neg_proportion', type=int, default=2)
+    args_parser.add_argument('-P', '--pos_proportion', dest='pos_proportion', type=int, default=1)
+    args_parser.add_argument('-N', '--neg_proportion', dest='neg_proportion', type=int, default=2)
+    args_parser.add_argument('-s', '--start-date', dest='start_date', type=str, default=datetime.now().strftime("%Y-%m-%d"))
+    args_parser.add_argument('-e', '--end-date', dest='end_date', type=str, default=None)
     args_parser.add_argument('-d', '--debug-pycharm', dest='pycharm', action="store_true", help='pycharm runner')
+    args_parser.add_argument('-F', '--use-new-feature', dest='new_features', type=str,  help='new feature path',default=None)
     args_parser.add_argument('-l', '--learning_rate', dest='learning_rate',  type=int, default=0.001,help='learning_rate')
     args_parser.add_argument('-L', '--l2', dest='l2',  type=int,default=0.001,help='l2')
     options = args_parser.parse_args()

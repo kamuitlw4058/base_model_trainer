@@ -83,7 +83,7 @@ class FeatureJobManger(JobManager):
         epoch =self.get_epoch_num(clk_sum)
         batch_size = self.get_batch_size(clk_sum)
         executor_num = self.get_datasource().get_executor_num()
-        worker_num = min(self.get_worker_num(imp_sum),executor_num)
+        worker_num = min(self.get_worker_num(clk_sum),executor_num)
         input_dim = self.get_feature_encoder().feature_dim()
         #epoch,batch_size,worker_num,input_dim, data_name):
         return epoch,batch_size,worker_num,input_dim

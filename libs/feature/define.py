@@ -63,6 +63,14 @@ def get_bidding_feature(account, vendor):
         f'{account}_{vendor}_last30_ctr'
     ]
 
+def get_feature_base_columns():
+    return  [
+        'Id_Zid',
+        'EventDate',
+        'Media_VendorId',
+        'Bid_CompanyId'
+    ]
+
 
 def get_raw_columns():
     cols = [

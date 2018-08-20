@@ -104,6 +104,13 @@ def run(job):
 
         epoch, batch_size, worker_num, input_dim = job_manager.get_trainer_params()
 
+        logger.info("trainer params:")
+        logger.info(f"epoch:{epoch}")
+        logger.info(f"batch_size:{batch_size}")
+        logger.info(f"worker_num:{worker_num}")
+        logger.info(f"input_dim:{input_dim}")
+
+
         trainer = job_manager.get_trainer()
         trainer.train(epoch,batch_size,worker_num,input_dim,data_names[0])
 

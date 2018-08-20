@@ -26,7 +26,10 @@ class RTBDataSourceFactory(DataSoureFactory):
                                          self._get_rtb_all_table_name(),
                                          self._get_rtb_local_table_name(),
                                          job.account,
-                                         job.vendor)
+                                         job.vendor,
+                                         job.start_date,
+                                         job.end_date,
+                                         job.new_features)
 
 
 

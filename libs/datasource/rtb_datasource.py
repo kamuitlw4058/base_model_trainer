@@ -7,12 +7,16 @@ import pandas as pd
 from sqlalchemy import create_engine
 from conf.clickhouse import hosts
 from libs.dataio.sql import SQL
-from conf.conf import MAX_POS_SAMPLE, CLK_LIMIT
+from conf.conf import MAX_POS_SAMPLE, CLK_LIMIT,JOB_ROOT_DIR
 from libs.env.spark import spark_session,SparkClickhouseReader
-from libs.feature.define import get_raw_columns
+from libs.feature.define import get_raw_columns,get_feature_base_columns
 from libs.feature.define import get_bidding_feature, context_feature, user_feature, user_cap_feature
 from libs.feature.cleaner import clean_data
 from libs.feature import udfs
+from libs.feature.feature_sql import FeatureSql
+from libs.feature.feature_factory import FeatureReader
+from datetime import datetime
+from conf import clickhouse
 
 _win_filter = ['TotalErrorCode = 0', 'Win_Timestamp > 0']
 
@@ -30,7 +34,7 @@ _zamplus_rtb_local_url = f'jdbc:clickhouse://{random.choice(hosts)}/{_zamplus_rt
 
 class RTBDataSource(DataSource):
 
-    def __init__(self,job_id,local_dir,filters,pos_proportion,neg_proportion,url_template,all_table,local_table,account,vendor):
+    def __init__(self,job_id,local_dir,filters,pos_proportion,neg_proportion,url_template,all_table,local_table,account,vendor,start_date,end_date,new_features):
         self._url_template = url_template
         self._url_all = self._url_template.format(random.choice(hosts),_zamplus_rtb_all_database)
         self._url_local = self._url_template.format(random.choice(hosts),_zamplus_rtb_local_database)
@@ -44,21 +48,45 @@ class RTBDataSource(DataSource):
         self._local_dir = local_dir
         self._account = account
         self._vendor = vendor
+        self._start_date = start_date
+        self._end_date = end_date
+        self._new_features = new_features
         self._raw_count = None
         self._executor_num = None
         self._clk_num = None
         self._imp_num = None
         self._spark = None
+        self._filter_start = None
+        self._filter_end = None
+        logger.info(" start date:" + self._start_date)
+        logging.info(" start date:" + self._start_date)
+        logging.info(" end date:" + self._end_date)
+        for f in  self._filters:
+            f_str = f.replace(' ','')
+            if f_str.startswith("EventDate>"):
+                self._filter_start = True
+            elif f_str.startswith("EventDate<"):
+                self._filter_end = True
+
+        if not self._filter_start:
+            filter_str = "EventDate>='" + self._start_date+ "'"
+            logging.info("append filter start date:" + filter_str)
+            self._filters.append(filter_str)
+
+        if not self._filter_end and self._end_date:
+            filter_str = "EventDate<='" + self._end_date + "'"
+            logging.info("append filter end date:" + filter_str)
+            self._filters.append(filter_str)
 
     def _get_clk_imp(self, filters):
-        logger.debug(filters)
+        logging.info(" filters:" + str(filters))
         cols = [
             'sum(notEmpty(Click.Timestamp)) as clk',
             'sum(notEmpty(Impression.Timestamp)) as imp'
         ]
         sql = SQL()
         q = sql.table(self._all_table).select(cols).where(filters).to_string()
-        logger.info("sql: " + q)
+        logging.info("sql: " + q)
 
         num = pd.read_sql(q, self._engine)
         if num.empty:
@@ -101,7 +129,7 @@ class RTBDataSource(DataSource):
 
     @staticmethod
     def _build_feature_datas_sql(filters,pos_ratio,neg_ratio,table):
-        cols = get_raw_columns()
+        cols = get_raw_columns() + get_feature_base_columns()
         posSql = SQL()
         posSql.table(table).select(cols).sample(pos_ratio).where(filters + _clk_filters)
         negSql = SQL()
@@ -141,7 +169,7 @@ class RTBDataSource(DataSource):
         raw = RTBDataSource.expend_fields(raw, ext_feature)
 
         raw = clean_data(self._job_id, raw, self._spark)
-        logger.info('[%s] columns %s', self._job_id, raw.schema.names)
+        logging.info('[%s] columns %s', self._job_id, raw.schema.names)
 
         return  raw, user_feature + context_feature + ext_feature
 
@@ -161,22 +189,29 @@ class RTBDataSource(DataSource):
         return self._clk_num,self._imp_num
 
 
+    def _drop_feature_base_columns(self,raw):
+        for col in get_feature_base_columns():
+            raw = raw.drop(col)
+
+        return raw
+
+
     def get_feature_datas(self):
         clk_num, imp_num = self._get_clk_imp(self._filters)
         self._clk_num ,self._imp_num = clk_num,imp_num
 
-        logger.info('[%s] clk=%d, imp=%d', self._job_id, clk_num, imp_num)
+        logging.info('[%s] clk=%d, imp=%d', self._job_id, clk_num, imp_num)
 
         if clk_num < CLK_LIMIT:
             raise RuntimeError(f'[{self._job_id}] too fewer clk({clk_num} < {CLK_LIMIT})')
 
         pos_ratio, neg_ratio = self._get_sample_ratio(clk_num,imp_num)
 
-        logger.info('[%s] pos_ratio = %.4f neg_ratio = %.4f', self._job_id, pos_ratio, neg_ratio)
+        logging.info('[%s] pos_ratio = %.4f neg_ratio = %.4f', self._job_id, pos_ratio, neg_ratio)
 
         estimated_samples = int(clk_num * pos_ratio
                                 + (imp_num - clk_num) * neg_ratio)
-        logger.info(f'[{self._job_id}] estimated samples = {estimated_samples}')
+        logging.info(f'[{self._job_id}] estimated samples = {estimated_samples}')
 
         sql = RTBDataSource._build_feature_datas_sql(self._filters, pos_ratio, neg_ratio, self._local_table)
         sql = RTBDataSource._get_jdbc_sql(sql)
@@ -197,7 +232,28 @@ class RTBDataSource(DataSource):
 
         logging.info(f'[{self._job_id}] start get features...')
 
+
         raw, features = self._get_features(raw)
+
+        if self._new_features:
+            logging.info(f'[{self._job_id}] start process new features...')
+            logging.info(f'[{self._job_id}] load features file from {self._new_features}')
+            new_features = FeatureSql.from_file(self._new_features)
+            factory = FeatureReader(new_features, _zamplus_rtb_local_url)
+            args = {'account': self._account, 'vendor': self._vendor}
+
+            start_date = datetime.strptime(self._start_date, '%Y-%m-%d')
+            if not self._end_date:
+                end_date = datetime.strptime(self._end_date, '%Y-%m-%d')
+            else:
+                end_date = datetime.strptime(datetime.now().strftime('%Y-%m-%d'),'%Y-%m-%d')
+
+            raw = factory.unionRaw(raw, start_date, end_date,
+                                   clickhouse.ONE_HOST_CONF, session=spark, **args)
+
+            features = features + new_features.get_values(**args)
+
+        raw = self._drop_feature_base_columns(raw)
 
         raw.cache()
 
@@ -210,7 +266,7 @@ class RTBDataSource(DataSource):
         try:
             if self._spark:
                 self._spark.stop()
-                logger.info('[%s] spark stopped', self._job_id)
+                logging.info('[%s] spark stopped', self._job_id)
 
         except Exception as e:
-            logger.exception("close spark error!",e)
+            logging.exception("close spark error!",e)

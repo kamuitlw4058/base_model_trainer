@@ -20,6 +20,9 @@ def parser(options):
     job.local_dir = os.path.join(JOB_ROOT_DIR.LOCAL_ROOT, job.job_name)
     job.hdfs_dir = os.path.join(JOB_ROOT_DIR.HDFS_ROOT, job.job_name)
 
+    job.start_date = options.start_date
+    job.end_date = options.end_date
+    job.new_features = options.new_features
 
     #TODO: 这边后续如何传入参数，数据格式，配置文件格式都需要确认
     with open(options.filters) as filter_file:
