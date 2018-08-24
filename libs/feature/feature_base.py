@@ -19,6 +19,7 @@ class FeatureBase:
     def get_data_date_col(self):
         return self._data_date_col
 
+
     def get_output_name(self,**kwargs):
         return self._output_name
 

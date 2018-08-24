@@ -33,7 +33,7 @@ class FeatureReader:
 
     @provide_spark_session
     def readDays(self,start_date,end_date,prop,session=None,**kwargs):
-        sqlList = self._feature.get_sql_list(start_date, end_date, **kwargs)
+        sqlList = self._feature.get_day_sql_list(start_date, end_date,**kwargs)
         retDf = None
         for s,d in sqlList:
 
@@ -55,10 +55,97 @@ class FeatureReader:
                 retDf =  retDf.union(df)
         return retDf
 
+    def readDaysBatchCond(self,start_date,end_date,prop,session=None,**kwargs):
+        sqlList =[]
+
+        for cond in self._feature._batch_cond:
+            kwargs.update(cond)
+            sl = self._feature.get_day_sql_list(start_date, end_date,pre_sql=True,**kwargs)
+            for sql,day in sl:
+                sqlList.append((sql,day,cond))
+
+        retDf = None
+        for s,d,cond in sqlList:
+            kwargs[self._feature._data_date_col] = d
+            kwargs.update(cond)
+            output_file = self._feature.get_output_name(d,**kwargs)
+            output_path = hadoop_conf.HDFS_FEATURE_ROOT + '/' + self._feature._name + '/' + output_file
+            df = None
+            if hdfs.exists(output_path):
+                logger.info("feature {name} file {path} is exist! we will use file.".format(name=self._feature._name, path=output_path))
+                df = session.read.parquet(output_path)
+            else:
+                logger.info(
+                    "feature {name} file {path} is not exist! we get data from clickhouse.".format(name=self._feature._name, path=output_path))
+                df = session.read.jdbc(self._url, s, properties=prop)
+                df.write.parquet(path=output_path,mode='overwrite')
+            if not retDf:
+                retDf = df
+            else:
+                retDf =  retDf.union(df)
+        return retDf
+
+    @provide_spark_session
+    def readHours(self,start_date,end_date,prop,session=None,**kwargs):
+        sqlList = self._feature.get_hour_sql_list(start_date, end_date,pre_sql=True, **kwargs)
+        retDf = None
+        for s,d in sqlList:
+            kwargs[self._feature._data_date_col] = d
+            output_file = self._feature.get_output_name(d,**kwargs)
+            output_path = hadoop_conf.HDFS_FEATURE_ROOT + '/' + self._feature._name + '/' + output_file
+            df = None
+            if hdfs.exists(output_path):
+                logger.info("feature {name} file {path} is exist! we will use file.".format(name=self._feature._name, path=output_path))
+                df = session.read.parquet(output_path)
+            else:
+                logger.info(
+                    "feature {name} file {path} is not exist! we get data from clickhouse.".format(name=self._feature._name, path=output_path))
+                #logger.info(f"sql:{s}")
+                df = session.read.jdbc(self._url, s, properties=prop)
+                #logger.info(f"count:{df.count()}")
+                #logger.info(f"count:{df.show(1)}")
+                df.write.parquet(path=output_path,mode='overwrite')
+            if not retDf:
+                retDf = df
+            else:
+                retDf =  retDf.union(df)
+        return retDf
+
+
+
     @provide_spark_session
     def unionRaw(self,rawDf,start_date,end_date,prop,session=None,**kwargs):
         from pyspark.sql.functions import col
-        featureDf = self.readDays(start_date,end_date,prop,session=session,**kwargs)
+        if self._feature._pre_sql and  self._feature._temp_table and self._feature._data_time_on_hour:
+            logger.info("get feature from hours list...")
+            featureDf = self.readHours(start_date, end_date, prop, session=session, **kwargs)
+            if self._feature._temp_table_format:
+                temp_table_name = self._feature._temp_table_format.format(**kwargs)
+                kwargs[self._feature._temp_table] = temp_table_name
+            else:
+                temp_table_name = self._feature._temp_table
+
+            featureDf.createOrReplaceTempView(temp_table_name)
+
+            sql = self._feature._sql.format(**kwargs)
+            featureDf = session.sql(sql)
+        elif self._feature._pre_sql and self._feature._temp_table and self._feature._batch_cond:
+            logger.info("get feature from batch cond list...")
+            featureDf = self.readDaysBatchCond(start_date,end_date,prop,session=session, **kwargs)
+            if self._feature._temp_table_format:
+                temp_table_name = self._feature._temp_table_format.format(**kwargs)
+                kwargs[self._feature._temp_table] = temp_table_name
+            else:
+                temp_table_name = self._feature._temp_table
+
+            featureDf.createOrReplaceTempView(temp_table_name)
+
+            sql = self._feature._sql.format(**kwargs)
+            featureDf = session.sql(sql)
+        else:
+            logger.info("get feature from days list...")
+            featureDf = self.readDays(start_date,end_date,prop,session=session,**kwargs)
+
         raw = rawDf.alias("raw")
         feature = featureDf.alias("feature")
         #on = [col('raw.' + k) == col("feature." + k) for k in self._feature._keys]

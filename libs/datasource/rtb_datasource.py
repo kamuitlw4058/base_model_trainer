@@ -236,28 +236,31 @@ class RTBDataSource(DataSource):
         raw, features = self._get_features(raw)
 
         if self._new_features:
-            logging.info(f'[{self._job_id}] start process new features...')
-            logging.info(f'[{self._job_id}] load features file from {self._new_features}')
-            new_features = FeatureSql.from_file(self._new_features)
-            factory = FeatureReader(new_features, _zamplus_rtb_local_url)
-            args = {'account': self._account, 'vendor': self._vendor}
-
             start_date = datetime.strptime(self._start_date, '%Y-%m-%d')
-            if not self._end_date:
+            if self._end_date:
                 end_date = datetime.strptime(self._end_date, '%Y-%m-%d')
             else:
-                end_date = datetime.strptime(datetime.now().strftime('%Y-%m-%d'),'%Y-%m-%d')
+                end_date = datetime.strptime(datetime.now().strftime('%Y-%m-%d'), '%Y-%m-%d')
 
-            raw = factory.unionRaw(raw, start_date, end_date,
-                                   clickhouse.ONE_HOST_CONF, session=spark, **args)
+            for f_path in self._new_features.split("#"):
+                logging.info(f'[{self._job_id}] start process new features...')
+                logging.info(f'[{self._job_id}] load features file from {f_path}')
+                new_features = FeatureSql.from_file(f_path)
+                factory = FeatureReader(new_features, _zamplus_rtb_local_url)
+                args = {'account': self._account, 'vendor': self._vendor}
 
-            features = features + new_features.get_values(**args)
+                raw = factory.unionRaw(raw, start_date, end_date,
+                                       clickhouse.ONE_HOST_CONF, session=spark, **args)
+
+                features = features + new_features.get_values(**args)
 
         raw = self._drop_feature_base_columns(raw)
 
         raw.cache()
 
         self._raw_count = raw.count()
+        raw.show(10)
+
         logging.info(f'[{self._job_id}] raw count: {self._raw_count}')
 
         return raw,features,self._get_multi_value_feature()
