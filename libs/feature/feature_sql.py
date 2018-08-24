@@ -42,14 +42,32 @@ class FeatureSql(FeatureBase):
             dt = dt + datetime.timedelta(hours=1)
         return dates
 
-    def __init__(self, name,keys,values,sql, data_date,output,data_time_on_hour= False, pre_sql=None,temp_table_format=None,temp_table=None,batch_cond =None):
-        super().__init__(name,keys,values,data_date,output)
+    def __init__(self, name,keys,values,sql, data_date,output,data_time_on_hour= False, pre_sql=None,temp_table_format=None,
+                 temp_table=None,batch_cond =None,start_date_offset=None,feature_args=None,once_sql = None):
+        if feature_args:
+            feature_name = name.format(**feature_args)
+            #feature_keys = [k.format(**feature_args) for k in keys]
+            #feature_values = [v.format(**feature_args) for v in values]
+            feature_keys = keys
+            feature_values =values
+            args = feature_args
+        else:
+            feature_name = name
+            feature_keys = keys
+            feature_values =values
+            args = None
+
+        super().__init__(feature_name,feature_keys,feature_values,data_date,output,args = args)
         self._data_time_on_hour = data_time_on_hour
         self._sql = sql
         self._pre_sql= pre_sql
         self._temp_table = temp_table
         self._temp_table_format = temp_table_format
         self._batch_cond = batch_cond
+        self._start_date_offset = start_date_offset
+        self._feature_args = feature_args
+        self._once_sql = once_sql
+
 
 
 
@@ -119,6 +137,9 @@ class FeatureSql(FeatureBase):
                     temp_table=feature_sql_json.get('temp_table'),
                     data_time_on_hour = feature_sql_json.get('data_time_on_hour'),
                     batch_cond=feature_sql_json.get('batch_cond'),
+                    start_date_offset=feature_sql_json.get('start_date_offset'),
+                    feature_args=feature_sql_json.get('feature_args'),
+                    once_sql=feature_sql_json.get('once_sql'),
         )
 
     def get_data_date_col(self):

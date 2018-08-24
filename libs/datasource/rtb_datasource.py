@@ -248,6 +248,8 @@ class RTBDataSource(DataSource):
                 new_features = FeatureSql.from_file(f_path)
                 factory = FeatureReader(new_features, _zamplus_rtb_local_url)
                 args = {'account': self._account, 'vendor': self._vendor}
+                if new_features.get_args():
+                    args.update(new_features.get_args())
 
                 raw = factory.unionRaw(raw, start_date, end_date,
                                        clickhouse.ONE_HOST_CONF, session=spark, **args)

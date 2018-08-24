@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 from  libs.feature.feature_sql import FeatureSql
 
 
-
+from datetime import datetime,timedelta
 import conf.hadoop as hadoop_conf
 
 from libs.env.spark import spark_session,provide_spark_session
@@ -55,20 +55,24 @@ class FeatureReader:
                 retDf =  retDf.union(df)
         return retDf
 
-    def readDaysBatchCond(self,start_date,end_date,prop,session=None,**kwargs):
+    def readDaysWithPreSql(self,start_date,end_date,prop,session=None,**kwargs):
         sqlList =[]
-
-        for cond in self._feature._batch_cond:
-            kwargs.update(cond)
-            sl = self._feature.get_day_sql_list(start_date, end_date,pre_sql=True,**kwargs)
-            for sql,day in sl:
-                sqlList.append((sql,day,cond))
+        if self._feature._batch_cond:
+            for cond in self._feature._batch_cond:
+                kwargs.update(cond)
+                sl = self._feature.get_day_sql_list(start_date, end_date,pre_sql=True,**kwargs)
+                for sql,day in sl:
+                    sqlList.append((sql,day,cond))
+        else:
+            sl = self._feature.get_day_sql_list(start_date, end_date, pre_sql=True, **kwargs)
+            for sql, day in sl:
+                sqlList.append((sql, day, {}))
 
         retDf = None
         for s,d,cond in sqlList:
             kwargs[self._feature._data_date_col] = d
             kwargs.update(cond)
-            output_file = self._feature.get_output_name(d,**kwargs)
+            output_file = self._feature.get_output_name(d,**kwargs) + "_pre"
             output_path = hadoop_conf.HDFS_FEATURE_ROOT + '/' + self._feature._name + '/' + output_file
             df = None
             if hdfs.exists(output_path):
@@ -115,7 +119,15 @@ class FeatureReader:
 
     @provide_spark_session
     def unionRaw(self,rawDf,start_date,end_date,prop,session=None,**kwargs):
-        from pyspark.sql.functions import col
+
+
+        if self._feature._start_date_offset:
+            pre_sql_start_date = start_date + timedelta(self._feature._start_date_offset)
+        else:
+            pre_sql_start_date = start_date
+
+
+
         if self._feature._pre_sql and  self._feature._temp_table and self._feature._data_time_on_hour:
             logger.info("get feature from hours list...")
             featureDf = self.readHours(start_date, end_date, prop, session=session, **kwargs)
@@ -129,9 +141,10 @@ class FeatureReader:
 
             sql = self._feature._sql.format(**kwargs)
             featureDf = session.sql(sql)
-        elif self._feature._pre_sql and self._feature._temp_table and self._feature._batch_cond:
-            logger.info("get feature from batch cond list...")
-            featureDf = self.readDaysBatchCond(start_date,end_date,prop,session=session, **kwargs)
+        elif self._feature._pre_sql and self._feature._temp_table:
+            logger.info("get feature from pre sql list...")
+            logger.info(f"params:{kwargs}")
+            featureDf = self.readDaysWithPreSql(pre_sql_start_date,end_date,prop,session=session, **kwargs)
             if self._feature._temp_table_format:
                 temp_table_name = self._feature._temp_table_format.format(**kwargs)
                 kwargs[self._feature._temp_table] = temp_table_name
@@ -139,9 +152,11 @@ class FeatureReader:
                 temp_table_name = self._feature._temp_table
 
             featureDf.createOrReplaceTempView(temp_table_name)
-
-            sql = self._feature._sql.format(**kwargs)
-            featureDf = session.sql(sql)
+            if self._feature._once_sql:
+                sql = self._feature._sql.format(**kwargs)
+                featureDf = session.sql(sql)
+            else:
+                featureDf = self.readDays(start_date, end_date, prop, session=session, **kwargs)
         else:
             logger.info("get feature from days list...")
             featureDf = self.readDays(start_date,end_date,prop,session=session,**kwargs)
