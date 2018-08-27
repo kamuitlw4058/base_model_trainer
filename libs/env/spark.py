@@ -85,7 +85,6 @@ def spark_session(spark_id, executor_num, local_dir):
     spark_conf.setMaster('yarn')
 
     spark = SparkSession.builder.config(conf=spark_conf).enableHiveSupport().getOrCreate()
-
     return spark
 
 class SparkClickhouseReader:
