@@ -305,6 +305,9 @@ class RTBDataSource(DataSource):
                 raw = factory.unionRaw(raw, start_date, end_date,
                                        clickhouse.ONE_HOST_CONF, session=spark, **args)
 
+                test = factory.unionRaw(test, start_date, end_date,
+                                       clickhouse.ONE_HOST_CONF, session=spark, **args)
+
                 features = features + new_features.get_values(**args)
 
         raw = self._drop_feature_base_columns(raw)

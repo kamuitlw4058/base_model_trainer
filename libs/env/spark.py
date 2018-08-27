@@ -70,7 +70,7 @@ def spark_session(spark_id, executor_num, local_dir):
         ('spark.driver.extraJavaOptions', f'-Duser.timezone=UTC+0800 -Djava.io.tmpdir={os.path.join(local_dir, "tmp")} -Dderby.system.home={os.path.abspath(local_dir)}'),
         ('spark.executor.extraJavaOptions', '-Duser.timezone=UTC+0800 -XX:+PrintGCDetails -XX:+PrintGCTimeStamps'),
         ('spark.executor.instances', executor_num),
-        ('spark.executor.memory', '4G'),
+        ('spark.executor.memory', '8G'),
         ('spark.executor.cores', 4),
         ('spark.sql.shuffle.partitions', executor_num),
         ('spark.sql.warehouse.dir', os.path.join(local_dir, 'metastore_db')),

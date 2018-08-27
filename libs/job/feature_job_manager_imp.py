@@ -23,6 +23,9 @@ class FeatureJobManger(JobManager):
             batch_size = 64
         elif clk_num < 40 * 10000:
             batch_size = 128
+        else:
+            batch_size = 128
+
         return batch_size
 
     @staticmethod
@@ -35,6 +38,8 @@ class FeatureJobManger(JobManager):
         elif clk_num < 20 * 10000:
             epoch = 2
         elif clk_num < 40 * 10000:
+            epoch = 2
+        else:
             epoch = 2
 
         return epoch

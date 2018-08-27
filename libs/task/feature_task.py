@@ -43,7 +43,7 @@ def prepare_data(job,job_manager):
 
         train_res, test_res = feature_encoder.encoder(raw,test, features,multi_value_feature)
 
-        train_res.repartition(executor_num)
+       # train_res.repartition(32)
 
         dataoutput = job_manager.get_dataoutput()
 
