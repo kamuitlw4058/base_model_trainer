@@ -22,6 +22,8 @@ def parser(options):
 
     job.start_date = options.start_date
     job.end_date = options.end_date
+    job.test_start_date = options.test_start_date
+    job.test_end_date = options.test_end_date
     job.new_features = options.new_features
 
     #TODO: 这边后续如何传入参数，数据格式，配置文件格式都需要确认

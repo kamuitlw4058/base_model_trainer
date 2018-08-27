@@ -29,6 +29,8 @@ class RTBDataSourceFactory(DataSoureFactory):
                                          job.vendor,
                                          job.start_date,
                                          job.end_date,
+                                         job.test_start_date,
+                                         job.test_end_date,
                                          job.new_features)
 
 

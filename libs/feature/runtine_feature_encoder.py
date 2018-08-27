@@ -16,7 +16,7 @@ class RuntineFeatureEncoder(FeatureEncoder):
         self._multi_value_category_feature = []
         self._dim = -1
 
-    def encoder(self,raw, features,multi_value_category_feature,train_ratio=0.9,test_ratio=0.1):
+    def encoder(self,raw, test,features,multi_value_category_feature,train_ratio=0.9,test_ratio=0.1):
 
         logger.info(' columns %s',  raw.schema.names)
 
@@ -25,8 +25,10 @@ class RuntineFeatureEncoder(FeatureEncoder):
 
         # 这边对先拆分，原始数据，再进行特征转换，是为了避免训练时，用到了测试集的一些OneHot的特征信息。
         # 原因是，我们的算法对
-        train, test = raw.randomSplit([train_ratio, test_ratio])
-        logger.info('[%s] data statics: total = %d, train = %d, test = %d', self._job_id, raw.count(), train.count(), test.count())
+        #train, test = raw.randomSplit([train_ratio, test_ratio])
+        train,test = raw,test
+        train_count,test_count =  train.count(), test.count()
+        logger.info('[%s] data statics: total = %d, train = %d, test = %d', self._job_id, train_count + test_count, train_count,test_count)
 
         # one hot encoding
         string_indexers = [StringIndexer(inputCol=c, outputCol="{}_idx".format(c), handleInvalid='keep')

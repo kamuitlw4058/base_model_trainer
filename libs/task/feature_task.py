@@ -35,13 +35,15 @@ def prepare_data(job,job_manager):
 
         datasource = job_manager.get_datasource()
 
-        raw,features,multi_value_feature = datasource.get_feature_datas()
+        raw,test,features,multi_value_feature = datasource.get_feature_datas()
 
+        executor_num = datasource.get_executor_num()
         #获取特征编码工厂
         feature_encoder = job_manager.get_feature_encoder()
 
-        train_res, test_res = feature_encoder.encoder(raw, features,multi_value_feature)
+        train_res, test_res = feature_encoder.encoder(raw,test, features,multi_value_feature)
 
+        train_res.repartition(executor_num)
 
         dataoutput = job_manager.get_dataoutput()
 

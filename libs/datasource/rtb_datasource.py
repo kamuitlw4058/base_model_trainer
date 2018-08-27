@@ -4,6 +4,7 @@ logger = logging.getLogger(__name__)
 from libs.datasource.datasource import DataSource
 import random
 import pandas as pd
+from copy import deepcopy
 from sqlalchemy import create_engine
 from conf.clickhouse import hosts
 from libs.dataio.sql import SQL
@@ -34,7 +35,14 @@ _zamplus_rtb_local_url = f'jdbc:clickhouse://{random.choice(hosts)}/{_zamplus_rt
 
 class RTBDataSource(DataSource):
 
-    def __init__(self,job_id,local_dir,filters,pos_proportion,neg_proportion,url_template,all_table,local_table,account,vendor,start_date,end_date,new_features):
+    def __init__(self,job_id,local_dir,filters,
+                 pos_proportion,neg_proportion,
+                 url_template,all_table,
+                 local_table,
+                 account,vendor,
+                 start_date,end_date,
+                 test_start_date, test_end_date,
+                 new_features):
         self._url_template = url_template
         self._url_all = self._url_template.format(random.choice(hosts),_zamplus_rtb_all_database)
         self._url_local = self._url_template.format(random.choice(hosts),_zamplus_rtb_local_database)
@@ -50,52 +58,60 @@ class RTBDataSource(DataSource):
         self._vendor = vendor
         self._start_date = start_date
         self._end_date = end_date
+        self._test_start_date = test_start_date
+        self._test_end_date = test_end_date
         self._new_features = new_features
         self._raw_count = None
         self._executor_num = None
         self._clk_num = None
         self._imp_num = None
         self._spark = None
-        self._filter_start = None
-        self._filter_end = None
+        self._train_filters = deepcopy(self._filters)
+        self._test_filters = deepcopy(self._filters)
         self._filter_account = None
         self._filter_vendor = None
+        self._data_split_mode = "byRamdon"
+
         logger.info(" start date:" + self._start_date)
         logging.info(" start date:" + self._start_date)
         logging.info(" end date:" + self._end_date)
         for f in  self._filters:
             f_str = f.replace(' ','')
-            if f_str.startswith("EventDate>"):
-                self._filter_start = True
-            elif f_str.startswith("EventDate<"):
-                self._filter_end = True
-            elif f_str.startswith("Bid_CompanyId"):
+            if f_str.startswith("Bid_CompanyId"):
                 self._filter_account = True
             elif f_str.startswith("Media_VendorId"):
                 self._filter_vendor = True
 
-        if not self._filter_start:
-            filter_str = "EventDate>='" + self._start_date+ "'"
-            logging.info("append filter start date:" + filter_str)
-            self._filters.append(filter_str)
+        filter_str = "EventDate>='" + self._start_date+ "'"
+        logging.info("append filter start date:" + filter_str)
+        self._train_filters.append(filter_str)
 
-        if not self._filter_end and self._end_date:
-            filter_str = "EventDate<='" + self._end_date + "'"
-            logging.info("append filter end date:" + filter_str)
-            self._filters.append(filter_str)
+        filter_str = "EventDate<='" + self._end_date + "'"
+        logging.info("append filter end date:" + filter_str)
+        self._train_filters.append(filter_str)
+
+        filter_str = "EventDate>='" + self._test_start_date+ "'"
+        logging.info("append filter test start date:" + filter_str)
+        self._test_filters.append(filter_str)
+
+        filter_str = "EventDate<='" + self._test_end_date + "'"
+        logging.info("append filter test end date:" + filter_str)
+        self._test_filters.append(filter_str)
 
         if not self._filter_account and self._account:
             filter_str = "Bid_CompanyId=" + str(self._account)
             logging.info("append filter Bid_CompanyId:" + filter_str)
-            self._filters.append(filter_str)
+            self._train_filters.append(filter_str)
+            self._test_filters.append(filter_str)
 
         if not self._filter_vendor and self._vendor:
             filter_str = "Media_VendorId=" + str(self._vendor)
             logging.info("append filter Media_VendorId:" + filter_str)
-            self._filters.append(filter_str)
+            self._train_filters.append(filter_str)
+            self._test_filters.append(filter_str)
 
     def _get_clk_imp(self, filters):
-        logging.info(" filters:" + str(filters))
+
         cols = [
             'sum(notEmpty(Click.Timestamp)) as clk',
             'sum(notEmpty(Impression.Timestamp)) as imp'
@@ -213,10 +229,18 @@ class RTBDataSource(DataSource):
 
 
     def get_feature_datas(self):
-        clk_num, imp_num = self._get_clk_imp(self._filters)
+        logging.info("train filters:" + str(self._train_filters))
+        logging.info("test filters:" + str(self._test_filters))
+
+        clk_num, imp_num = self._get_clk_imp(self._test_filters)
+
+        logging.info('[%s] test clk=%d, imp=%d', self._job_id, clk_num, imp_num)
+
+        clk_num, imp_num = self._get_clk_imp(self._train_filters)
+
         self._clk_num ,self._imp_num = clk_num,imp_num
 
-        logging.info('[%s] clk=%d, imp=%d', self._job_id, clk_num, imp_num)
+        logging.info('[%s] train clk=%d, imp=%d', self._job_id, clk_num, imp_num)
 
         if clk_num < CLK_LIMIT:
             raise RuntimeError(f'[{self._job_id}] too fewer clk({clk_num} < {CLK_LIMIT})')
@@ -229,10 +253,13 @@ class RTBDataSource(DataSource):
                                 + (imp_num - clk_num) * neg_ratio)
         logging.info(f'[{self._job_id}] estimated samples = {estimated_samples}')
 
-        sql = RTBDataSource._build_feature_datas_sql(self._filters, pos_ratio, neg_ratio, self._local_table)
+        sql = RTBDataSource._build_feature_datas_sql(self._train_filters, pos_ratio, neg_ratio, self._local_table)
         sql = RTBDataSource._get_jdbc_sql(sql)
 
-        logging.info(f'[{self._job_id}] get data sql: {sql}')
+        test_sql = RTBDataSource._build_feature_datas_sql(self._test_filters, pos_ratio, neg_ratio, self._local_table)
+        test_sql = RTBDataSource._get_jdbc_sql(test_sql)
+
+        #logging.info(f'[{self._job_id}] get data sql: {sql}')
 
         spark_executor_num = RTBDataSource._get_executor_num(estimated_samples)
 
@@ -246,17 +273,25 @@ class RTBDataSource(DataSource):
 
         raw = spark_clickhouse_reader.read_sql_parallel(sql,spark_executor_num)
 
+        test = spark_clickhouse_reader.read_sql_parallel(test_sql,spark_executor_num)
+
         logging.info(f'[{self._job_id}] start get features...')
 
 
         raw, features = self._get_features(raw)
 
+        test, test_features = self._get_features(test)
+
         if self._new_features:
             start_date = datetime.strptime(self._start_date, '%Y-%m-%d')
-            if self._end_date:
-                end_date = datetime.strptime(self._end_date, '%Y-%m-%d')
+
+            if self._test_end_date:
+                end_date = datetime.strptime(self._test_end_date, '%Y-%m-%d')
             else:
-                end_date = datetime.strptime(datetime.now().strftime('%Y-%m-%d'), '%Y-%m-%d')
+                if self._end_date:
+                    end_date = datetime.strptime(self._end_date, '%Y-%m-%d')
+                else:
+                    end_date = datetime.strptime(datetime.now().strftime('%Y-%m-%d'), '%Y-%m-%d')
 
             for f_path in self._new_features.split("#"):
                 logging.info(f'[{self._job_id}] start process new features...')
@@ -273,6 +308,9 @@ class RTBDataSource(DataSource):
                 features = features + new_features.get_values(**args)
 
         raw = self._drop_feature_base_columns(raw)
+        test = self._drop_feature_base_columns(test)
+
+        raw.repartition(spark_executor_num)
 
         raw.cache()
 
@@ -281,7 +319,7 @@ class RTBDataSource(DataSource):
 
         logging.info(f'[{self._job_id}] raw count: {self._raw_count}')
 
-        return raw,features,self._get_multi_value_feature()
+        return raw,test,features,self._get_multi_value_feature()
 
     def close(self):
         try:

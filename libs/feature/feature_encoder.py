@@ -3,7 +3,7 @@ from abc import ABC,abstractmethod
 class FeatureEncoder(ABC):
 
     @abstractmethod
-    def encoder(self,raw, features,multi_value_feature):
+    def encoder(self,raw, test,features,multi_value_feature):
         return
 
     @abstractmethod

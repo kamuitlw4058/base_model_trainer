@@ -104,17 +104,17 @@ class FeatureReader:
 
         return ret_df
 
-    def readDaysWithPreSql(self,start_date,end_date,prop,session=None,**kwargs):
+    def readDaysWithPreSql(self,start_date,end_date,prop,session=None,pre_sql=True,suffix="",**kwargs):
         sqlList =[]
         hdfs_files_list = []
         if self._feature._batch_cond:
             for cond in self._feature._batch_cond:
                 kwargs.update(cond)
-                sl = self._feature.get_day_sql_list(start_date, end_date,pre_sql=True,**kwargs)
+                sl = self._feature.get_day_sql_list(start_date, end_date,pre_sql=pre_sql,**kwargs)
                 for sql,day in sl:
                     sqlList.append((sql,day,cond))
         else:
-            sl = self._feature.get_day_sql_list(start_date, end_date, pre_sql=True, **kwargs)
+            sl = self._feature.get_day_sql_list(start_date, end_date,pre_sql=pre_sql,**kwargs)
             for sql, day in sl:
                 sqlList.append((sql, day, {}))
 
@@ -122,7 +122,7 @@ class FeatureReader:
         for s,d,cond in sqlList:
             kwargs[self._feature._data_date_col] = d
             kwargs.update(cond)
-            output_file = self._feature.get_output_name(d,**kwargs) + "_pre"
+            output_file = self._feature.get_output_name(d,**kwargs) + suffix
             output_path = hadoop_conf.HDFS_FEATURE_ROOT + '/' + self._feature._name + '/' + output_file
             df = None
             if hdfs.exists(output_path):
@@ -145,7 +145,10 @@ class FeatureReader:
         if not ret_df:
             ret_df = session.read.parquet(*hdfs_files_list)
         else:
-            df = session.read.parquet(*hdfs_files_list)
+            df =None
+            if len(hdfs_files_list) >0:
+                df = session.read.parquet(*hdfs_files_list)
+
             if df:
                 ret_df.union(df)
         return ret_df
@@ -206,7 +209,7 @@ class FeatureReader:
             logger.info(f"params:{kwargs}")
             logger.info(f"pre-sql start date:{pre_sql_start_date}  pre-sql end date:{end_date}")
             logger.info(f"sql start date:{start_date}  sql end date:{end_date}")
-            featureDf = self.readDaysWithPreSql(pre_sql_start_date,end_date,prop,session=session, **kwargs)
+            featureDf = self.readDaysWithPreSql(pre_sql_start_date,end_date,prop,suffix='_pre', session=session, **kwargs)
             if self._feature._temp_table_format:
                 temp_table_name = self._feature._temp_table_format.format(**kwargs)
                 kwargs[self._feature._temp_table] = temp_table_name
@@ -221,7 +224,12 @@ class FeatureReader:
                 featureDf = self.readDaysTempTable(start_date, end_date, session=session, **kwargs)
         else:
             logger.info("get feature from days list...")
-            featureDf = self.readDays(start_date,end_date,prop,session=session,**kwargs)
+            logger.info(f"params:{kwargs}")
+            if self._feature._once_sql:
+                sql = self._feature._sql.format(**kwargs)
+                featureDf = session.sql(sql)
+            else:
+                featureDf = self.readDaysWithPreSql(start_date,end_date,prop,pre_sql=False,session=session,**kwargs)
 
         raw = rawDf.alias("raw")
         feature = featureDf.alias("feature")
