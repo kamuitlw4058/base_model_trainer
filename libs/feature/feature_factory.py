@@ -22,9 +22,10 @@ from libs.env.hdfs import hdfs
 from libs.feature.clickhouse_sparksql_map import replace_map
 
 class FeatureReader:
-    def __init__(self,feature,url):
+    def __init__(self,feature,url,executor_num):
         self._feature = feature
         self._url = url
+        self._executor_num = executor_num
 
     @staticmethod
     def jdbc_sql(sql):
@@ -92,14 +93,14 @@ class FeatureReader:
                 ret_df = df
             else:
                 if df:
-                    ret_df = ret_df.union(df)
+                    ret_df = ret_df.union(df).repartition(self._executor_num)
 
         if not ret_df:
             ret_df = session.read.parquet(*hdfs_files_list)
         else:
             df = session.read.parquet(*hdfs_files_list)
             if df:
-                ret_df.union(df)
+                ret_df.union(df).repartition(self._executor_num)
 
         return ret_df
 

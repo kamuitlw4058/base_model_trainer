@@ -72,7 +72,7 @@ class RTBDataSource(DataSource):
             elif f_str.startswith("Bid_CompanyId"):
                 self._filter_account = True
             elif f_str.startswith("Media_VendorId"):
-                self._filter_vendor
+                self._filter_vendor = True
 
         if not self._filter_start:
             filter_str = "EventDate>='" + self._start_date+ "'"
@@ -85,12 +85,12 @@ class RTBDataSource(DataSource):
             self._filters.append(filter_str)
 
         if not self._filter_account and self._account:
-            filter_str = "Bid_CompanyId='" + self._account + "'"
+            filter_str = "Bid_CompanyId=" + str(self._account)
             logging.info("append filter Bid_CompanyId:" + filter_str)
             self._filters.append(filter_str)
 
         if not self._filter_vendor and self._vendor:
-            filter_str = "Media_VendorId='" + self._vendor + "'"
+            filter_str = "Media_VendorId=" + str(self._vendor)
             logging.info("append filter Media_VendorId:" + filter_str)
             self._filters.append(filter_str)
 
@@ -262,7 +262,7 @@ class RTBDataSource(DataSource):
                 logging.info(f'[{self._job_id}] start process new features...')
                 logging.info(f'[{self._job_id}] load features file from {f_path}')
                 new_features = FeatureSql.from_file(f_path)
-                factory = FeatureReader(new_features, _zamplus_rtb_local_url)
+                factory = FeatureReader(new_features, _zamplus_rtb_local_url,spark_executor_num)
                 args = {'account': self._account, 'vendor': self._vendor}
                 if new_features.get_args():
                     args.update(new_features.get_args())

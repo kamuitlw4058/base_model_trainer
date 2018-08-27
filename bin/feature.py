@@ -60,8 +60,8 @@ if __name__ == '__main__':
 
     # parse command line args
     args_parser = argparse.ArgumentParser()
-    args_parser.add_argument('-a', '--account', dest='account', type=int, required=True, default=12, help='the account (eg: 12 )')
-    args_parser.add_argument('-v', '--vendor', dest='vendor', type=int, required=True,default=24, help='the vendor (eg: 24 )')
+    args_parser.add_argument('-a', '--account', dest='account', type=int, required=True, default=None, help='the account (eg: 12 )')
+    args_parser.add_argument('-v', '--vendor', dest='vendor', type=int, required=True,default=None, help='the vendor (eg: 24 )')
     args_parser.add_argument('-n', '--feature_name', dest='feature_name', required=True,type=str, help='the name (eg. account_vender_last30_ctr)')
     args_parser.add_argument('-j', '--job_name', dest='job_name', type=str, help='the name (eg. job_123)')
     args_parser.add_argument('-f', '--filter-file', dest='filters', type=str,required=True,help=' filter file path list of sql(eg: ')
