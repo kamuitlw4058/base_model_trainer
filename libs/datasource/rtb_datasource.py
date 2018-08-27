@@ -58,6 +58,8 @@ class RTBDataSource(DataSource):
         self._spark = None
         self._filter_start = None
         self._filter_end = None
+        self._filter_account = None
+        self._filter_vendor = None
         logger.info(" start date:" + self._start_date)
         logging.info(" start date:" + self._start_date)
         logging.info(" end date:" + self._end_date)
@@ -67,6 +69,10 @@ class RTBDataSource(DataSource):
                 self._filter_start = True
             elif f_str.startswith("EventDate<"):
                 self._filter_end = True
+            elif f_str.startswith("Bid_CompanyId"):
+                self._filter_account = True
+            elif f_str.startswith("Media_VendorId"):
+                self._filter_vendor
 
         if not self._filter_start:
             filter_str = "EventDate>='" + self._start_date+ "'"
@@ -76,6 +82,16 @@ class RTBDataSource(DataSource):
         if not self._filter_end and self._end_date:
             filter_str = "EventDate<='" + self._end_date + "'"
             logging.info("append filter end date:" + filter_str)
+            self._filters.append(filter_str)
+
+        if not self._filter_account and self._account:
+            filter_str = "Bid_CompanyId='" + self._account + "'"
+            logging.info("append filter Bid_CompanyId:" + filter_str)
+            self._filters.append(filter_str)
+
+        if not self._filter_vendor and self._vendor:
+            filter_str = "Media_VendorId='" + self._vendor + "'"
+            logging.info("append filter Media_VendorId:" + filter_str)
             self._filters.append(filter_str)
 
     def _get_clk_imp(self, filters):
