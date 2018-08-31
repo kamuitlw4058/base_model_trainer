@@ -26,6 +26,7 @@ class FeatureReader:
         self._feature = feature
         self._url = url
         self._executor_num = executor_num
+        self._feature_df = None
 
     @staticmethod
     def jdbc_sql(sql):
@@ -180,18 +181,14 @@ class FeatureReader:
                 retDf =  retDf.union(df)
         return retDf
 
-
-
     @provide_spark_session
-    def unionRaw(self,rawDf,start_date,end_date,prop,session=None,**kwargs):
-
+    def read(self,start_date,end_date,prop,session=None,**kwargs):
         if self._feature._start_date_offset:
             pre_sql_start_date = start_date + timedelta(self._feature._start_date_offset)
         else:
             pre_sql_start_date = start_date
 
-
-        if self._feature._pre_sql and  self._feature._temp_table and self._feature._data_time_on_hour:
+        if self._feature._pre_sql and self._feature._temp_table and self._feature._data_time_on_hour:
             logger.info("get feature from hours list...")
             featureDf = self.readHours(start_date, end_date, prop, session=session, **kwargs)
             if self._feature._temp_table_format:
@@ -209,7 +206,8 @@ class FeatureReader:
             logger.info(f"params:{kwargs}")
             logger.info(f"pre-sql start date:{pre_sql_start_date}  pre-sql end date:{end_date}")
             logger.info(f"sql start date:{start_date}  sql end date:{end_date}")
-            featureDf = self.readDaysWithPreSql(pre_sql_start_date,end_date,prop,suffix='_pre', session=session, **kwargs)
+            featureDf = self.readDaysWithPreSql(pre_sql_start_date, end_date, prop, suffix='_pre', session=session,
+                                                **kwargs)
             if self._feature._temp_table_format:
                 temp_table_name = self._feature._temp_table_format.format(**kwargs)
                 kwargs[self._feature._temp_table] = temp_table_name
@@ -229,11 +227,25 @@ class FeatureReader:
                 sql = self._feature._sql.format(**kwargs)
                 featureDf = session.sql(sql)
             else:
-                featureDf = self.readDaysWithPreSql(start_date,end_date,prop,pre_sql=False,session=session,**kwargs)
+                featureDf = self.readDaysWithPreSql(start_date, end_date, prop, pre_sql=False, session=session,
+                                                    **kwargs)
+        self._feature_df = featureDf
+        return featureDf
 
+    def get_feature_df(self):
+        return  self._feature_df
+
+    def get_feature(self):
+        return self._feature
+
+    def get_feature_keys(self):
+        return self._feature.get_keys()
+
+    @staticmethod
+    def unionRaw(rawDf,featureDf,keys):
         raw = rawDf.alias("raw")
         feature = featureDf.alias("feature")
-        joinedDf = raw.join(feature,self._feature._keys,"left")
+        joinedDf = raw.join(feature,keys,"left")
         return joinedDf
 
 

@@ -42,7 +42,7 @@ def prepare_data(job,job_manager):
         feature_encoder = job_manager.get_feature_encoder()
 
         train_res, test_res = feature_encoder.encoder(raw,test, features,multi_value_feature)
-
+        raw.unpersist()
        # train_res.repartition(32)
 
         dataoutput = job_manager.get_dataoutput()
@@ -71,7 +71,9 @@ def run(job):
 
 
     try:
-        job.status = 'init'
+        job.start_time = datetime.now()
+
+        job.set_status("init")
         logger.info('[%s] job info: %s', job.job_name,job)
         init_job(job)
 
@@ -102,7 +104,7 @@ def run(job):
 
         data_names = ['train', 'test']
 
-        job.status = 'train'
+        job.set_status("train")
 
         epoch, batch_size, worker_num, input_dim = job_manager.get_trainer_params()
 
@@ -121,13 +123,20 @@ def run(job):
         #######################################
         # evaluate model performance
         #######################################
-        job.status = 'auc'
+        job.set_status("auc")
 
         predictor = job_manager.get_predictor()
         pred_results = predictor.predict( worker_num,input_dim, data_names)
 
         train_auc, test_auc = predictor.evaluate_auc(pred_results)
         logger.info('[%s] train auc %.3f, test auc %.3f', job_id, train_auc, test_auc)
+
+        job.train_auc = train_auc
+        job.test_auc = test_auc
+
+
+        job.end_time = datetime.now()
+        job.set_status("finish")
 
         #######################################
         # histogram equalization transform
@@ -177,6 +186,8 @@ def run(job):
         #
         # logger.info('[%s] finished, elapsed %s', job_id, str(end_time - start_time))
     except Exception as e:
+        job.end_time = datetime.now()
+        job.set_status("failed")
         logger.exception('[%s] %s', job_id, e)
     finally:
         pass
@@ -184,8 +195,7 @@ def run(job):
         #     clean_task_dir(runtime_conf)
         #     logger.info('[%s] clean task dir', job_id)
 
-    # try:
-    #     if not options.debug or options.send:
-    #         tracker.commit()
-    # except Exception as e:
-    #     logger.exception(e)
+    try:
+            job.commit()
+    except Exception as e:
+        logger.exception(e)

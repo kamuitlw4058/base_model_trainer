@@ -269,20 +269,9 @@ class RTBDataSource(DataSource):
         spark = spark_session(self._job_id,spark_executor_num,self._local_dir)
         self._spark = spark
 
-        spark_clickhouse_reader = SparkClickhouseReader(spark,_zamplus_rtb_local_url)
-
-        raw = spark_clickhouse_reader.read_sql_parallel(sql,spark_executor_num)
-
-        test = spark_clickhouse_reader.read_sql_parallel(test_sql,spark_executor_num)
-
-        logging.info(f'[{self._job_id}] start get features...')
-
-
-        raw, features = self._get_features(raw)
-
-        test, test_features = self._get_features(test)
-
+        new_features_reader = []
         if self._new_features:
+            logging.info(f'[{self._job_id}] start get features...')
             start_date = datetime.strptime(self._start_date, '%Y-%m-%d')
 
             if self._test_end_date:
@@ -302,15 +291,33 @@ class RTBDataSource(DataSource):
                 if new_features.get_args():
                     args.update(new_features.get_args())
 
-                raw = factory.unionRaw(raw, start_date, end_date,
-                                       clickhouse.ONE_HOST_CONF, session=spark, **args)
+                factory.read( start_date, end_date,clickhouse.ONE_HOST_CONF, session=spark, **args)
+                new_features_reader.append(factory)
 
-                test = factory.unionRaw(test, start_date, end_date,
-                                       clickhouse.ONE_HOST_CONF, session=spark, **args)
 
-                features = features + new_features.get_values(**args)
+        spark_clickhouse_reader = SparkClickhouseReader(spark,_zamplus_rtb_local_url)
+
+        raw = spark_clickhouse_reader.read_sql_parallel(sql,spark_executor_num)
+
+        test = spark_clickhouse_reader.read_sql_parallel(test_sql,spark_executor_num)
+
+        raw, features = self._get_features(raw)
+
+        test, test_features = self._get_features(test)
+
+        if self._new_features:
+            for reader in new_features_reader:
+                logging.info(f'[{self._job_id}] start union features...')
+                raw = FeatureReader.unionRaw(raw,reader.get_feature_df(),reader.get_feature_keys())
+                test = FeatureReader.unionRaw(test, reader.get_feature_df(),reader.get_feature_keys())
+
+                args = {'account': self._account, 'vendor': self._vendor}
+                if reader.get_feature().get_args():
+                    args.update(reader.get_feature().get_args())
+                features = features + reader.get_feature().get_values(**args)
 
         raw = self._drop_feature_base_columns(raw)
+
         test = self._drop_feature_base_columns(test)
 
         raw.repartition(spark_executor_num)
