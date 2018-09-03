@@ -223,7 +223,12 @@ class RTBDataSource(DataSource):
 
     def _drop_feature_base_columns(self,raw):
         for col in get_feature_base_columns():
-            raw = raw.drop(col)
+            col_list = col.split("as")
+            if len(col_list) > 1:
+                drop_col = col_list[1].strip()
+            else:
+                drop_col = col
+            raw = raw.drop(drop_col)
 
         return raw
 
