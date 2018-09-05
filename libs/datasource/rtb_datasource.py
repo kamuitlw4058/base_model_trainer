@@ -274,7 +274,7 @@ class RTBDataSource(DataSource):
         spark = spark_session(self._job_id,spark_executor_num,self._local_dir)
         self._spark = spark
 
-        new_features_reader = []
+        features_readers = []
         if self._new_features:
             logging.info(f'[{self._job_id}] start get features...')
             start_date = datetime.strptime(self._start_date, '%Y-%m-%d')
@@ -291,13 +291,13 @@ class RTBDataSource(DataSource):
                 logging.info(f'[{self._job_id}] start process new features...')
                 logging.info(f'[{self._job_id}] load features file from {f_path}')
                 new_features = FeatureSql.from_file(f_path)
-                factory = FeatureReader(new_features, _zamplus_rtb_local_url,spark_executor_num)
+                feature_reader = FeatureReader(new_features, _zamplus_rtb_local_url,spark_executor_num)
                 args = {'account': self._account, 'vendor': self._vendor}
                 if new_features.get_args():
                     args.update(new_features.get_args())
 
-                factory.read( start_date, end_date,clickhouse.ONE_HOST_CONF, session=spark, **args)
-                new_features_reader.append(factory)
+                feature_reader.read( start_date, end_date,clickhouse.ONE_HOST_CONF, session=spark, **args)
+                features_readers.append(feature_reader)
 
 
         spark_clickhouse_reader = SparkClickhouseReader(spark,_zamplus_rtb_local_url)
@@ -311,7 +311,7 @@ class RTBDataSource(DataSource):
         test, test_features = self._get_features(test)
 
         if self._new_features:
-            for reader in new_features_reader:
+            for reader in features_readers:
                 logging.info(f'[{self._job_id}] start union features...')
                 raw = FeatureReader.unionRaw(raw,reader.get_feature_df(),reader.get_feature_keys())
                 test = FeatureReader.unionRaw(test, reader.get_feature_df(),reader.get_feature_keys())

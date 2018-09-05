@@ -75,25 +75,23 @@ class FeatureSql(FeatureBase):
          return self._sql.format(**kwargs)
 
 
-    def get_sql_list(self,dates,pre_sql=False,**kwargs):
+
+    def get_sql_list(self,dates,sql_template,**kwargs):
         rSql = []
         for d in dates:
             kwargs[self._data_date_col] = d
-            if pre_sql :
-                sql_format = self._pre_sql
-            else:
-                sql_format = self._sql
-            sql = sql_format.format(**kwargs)
+            sql = sql_template.format(**kwargs)
             rSql.append((sql,d))
         return  rSql
 
-    def get_day_sql_list(self, start_date, end_date,pre_sql=False, **kwargs):
-        dates = self.date_range(start_date,end_date)
-        return self.get_sql_list(dates,pre_sql=pre_sql,**kwargs)
 
-    def get_hour_sql_list(self, start_date, end_date,pre_sql=False, **kwargs):
+    def get_day_sql_list(self, start_date, end_date,sql_template, **kwargs):
+        dates = self.date_range(start_date,end_date)
+        return self.get_sql_list(dates,sql_template,**kwargs)
+
+    def get_hour_sql_list(self, start_date, end_date,sql_template, **kwargs):
         dates = self.hour_range(start_date,end_date)
-        return self.get_sql_list(dates, pre_sql=pre_sql, **kwargs)
+        return self.get_sql_list(dates, sql_template, **kwargs)
 
     def get_keys(self):
         return self._keys
