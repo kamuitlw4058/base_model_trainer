@@ -193,11 +193,12 @@ class RTBDataSource(DataSource):
         return raw.drop(ext_dict, 'ext_key', 'ext_value')
 
     def _get_features(self,raw):
-        if self._account and self._vendor:
-            bidding_feature = get_bidding_feature(self._account, self._vendor)
-            ext_feature = user_cap_feature + bidding_feature
-        else:
-            ext_feature = user_cap_feature
+        # if self._account and self._vendor:
+        #     bidding_feature = get_bidding_feature(self._account, self._vendor)
+        #     ext_feature = user_cap_feature + bidding_feature
+        # else:
+        #     ext_feature = user_cap_feature
+        ext_feature = user_cap_feature
         raw = RTBDataSource.expend_fields(raw, ext_feature)
 
         raw = clean_data(self._job_id, raw, self._spark)

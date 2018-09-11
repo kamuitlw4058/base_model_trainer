@@ -69,6 +69,7 @@ def get_feature_base_columns():
         'EventDate',
         'Media_VendorId',
         'Bid_CompanyId',
+        'RequestId',
         'toMinute(cast(Time_Timestamp as DateTime) ) as Time_Minute',
         'toInt32(Time_Hour) * 60 + Time_Minute as Date_Minute',
         'floor(Date_Minute / 10) as Time_Minute_10',

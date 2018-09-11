@@ -73,6 +73,7 @@ def spark_session(spark_id, executor_num, local_dir):
         ('spark.executor.memory', '8G'),
         ('spark.executor.cores', 4),
         ('spark.sql.shuffle.partitions', executor_num),
+        ('spark.yarn.executor.memoryOverhead', '4G'),
         ('spark.sql.warehouse.dir', os.path.join(local_dir, 'metastore_db')),
         ('spark.local.dir', os.path.join(local_dir, 'tmp'))
     ]

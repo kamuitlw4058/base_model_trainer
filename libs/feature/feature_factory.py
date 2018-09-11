@@ -167,13 +167,16 @@ class FeatureReader:
 
             sql = self._feature._sql.format(**kwargs)
             featureDf = session.sql(sql)
-        elif self._feature._pre_sql and self._feature._temp_table:
+        elif self._feature._pre_sql:
             logger.info("get feature from pre sql list...")
             logger.info(f"params:{kwargs}")
             logger.info(f"sql start date:{start_date}  sql end date:{end_date}")
 
             for item in self._feature._pre_sql:
-                pre_sql_start_date = start_date + timedelta(item.get('start_date_offset'))
+                if item.get('start_date_offset'):
+                    pre_sql_start_date = start_date + timedelta(item.get('start_date_offset'))
+                else:
+                    pre_sql_start_date = start_date
                 logger.info(f"pre-sql start date:{pre_sql_start_date}  pre-sql end date:{end_date}")
                 featureDf = self.readDaysWithSql(pre_sql_start_date, end_date, item.get('sql'),
                                                  item.get('output_template'), prop, batch_cond=item.get('batch_cond'),suffix='_pre', session=session,
@@ -186,6 +189,9 @@ class FeatureReader:
                     temp_table_name = item.get('table_name')
 
                 featureDf.createOrReplaceTempView(temp_table_name)
+
+            logger.info("start main sql...")
+
 
             if self._feature._once_sql:
                 sql = self._feature._sql.format(**kwargs)
