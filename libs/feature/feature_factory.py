@@ -211,7 +211,8 @@ class FeatureReader:
                 sep =','
 
             featureDf = session.read.csv(self._feature._csv, header=True, inferSchema=True, sep=sep)
-            logger.info("csv feature count:" + str(featureDf.count()))
+            logger.info("csv feature data count:" + str(featureDf.count()))
+            featureDf.show(10)
             self._feature_df = featureDf
 
         else:

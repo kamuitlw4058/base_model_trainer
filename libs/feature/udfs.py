@@ -21,7 +21,7 @@ def to_string(v):
 def weekday(dt):
     return f'{dt:%A}'.lower()
 
-@udf(returnType=IntegerType())
+@udf(returnType=DoubleType())
 def int_default_zero(values):
     if values:
         return values
