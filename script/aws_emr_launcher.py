@@ -12,7 +12,7 @@ def update_hadoop_conf():
     cluster_id = emr.active_cluster_id(datetime.today()-timedelta(days=2))
     if not  cluster_id:
         print("hasn't active cluster...")
-        return
+        sys.exit(-1)
 
     print(f'cluster id = {cluster_id}')
 
@@ -48,17 +48,24 @@ def update_hadoop_conf():
                 f.write('export SPARK_PUBLIC_DNS=`hostname -i`\n')
             else:
                 f.write(line)
+        #f.write(f"{}")
 
 
 if __name__ == '__main__':
     update_hadoop_conf()
 
     import libs.env.hadoop
+    import os
     from libs.env.hdfs import hdfs
-    from conf.hadoop import PYTHON_ENV_CACHE, HDFS_CACHE_ROOT
+    from conf.hadoop import PYTHON_ENV_CACHE, HDFS_CACHE_ROOT,HDFS_EXTNED_DATA_ROOT,EXTNED_DATA_DIR
     from conf.spark import HDFS_SPARK_JARS
 
     hdfs.mkdir(HDFS_CACHE_ROOT)
+    hdfs.mkdir(HDFS_EXTNED_DATA_ROOT)
+
+    filelist = os.listdir(EXTNED_DATA_DIR)
+    for file in filelist:
+        hdfs.put(EXTNED_DATA_DIR + '/' + file,HDFS_EXTNED_DATA_ROOT)
 
     hdfs.put('/data/tool/python3.zip', PYTHON_ENV_CACHE)
     hdfs.put('/data/tool/env/spark-2.2.0.zip', HDFS_SPARK_JARS)

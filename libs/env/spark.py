@@ -45,6 +45,7 @@ def spark_session(spark_id, executor_num, local_dir):
     os.environ['PYSPARK_PYTHON'] = WORKER_PYTHON
     os.environ['PYSPARK_DRIVER_PYTHON'] = DRIVER_PYTHON
 
+
     if not local_dir:
         local_dir = os.path.join(JOB_ROOT_DIR.LOCAL_ROOT, spark_id)
 
@@ -75,11 +76,13 @@ def spark_session(spark_id, executor_num, local_dir):
         ('spark.sql.shuffle.partitions', executor_num),
         ('spark.yarn.executor.memoryOverhead', '4G'),
         ('spark.sql.warehouse.dir', os.path.join(local_dir, 'metastore_db')),
-        ('spark.local.dir', os.path.join(local_dir, 'tmp'))
+        ('spark.local.dir', os.path.join(local_dir, 'tmp')),
+        ('spark.driver.extraClassPath',"/data/tool/env/hadoop-lzo/lib/hadoop-lzo-0.4.19.jar"),
+        ('spark.driver.extraLibraryPath ','/data/tool/env/hadoop-lzo/lib/native/')
     ]
 
     for k, v in conf_details:
-        logger.info('[%s] spark config %s = %s', spark_id, k, v)
+        print(f'[{spark_id}] spark config {k} = {v}')
 
     spark_conf.setAll(conf_details)
     spark_conf.setAppName(f'{spark_id}')

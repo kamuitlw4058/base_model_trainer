@@ -20,6 +20,7 @@ from conf import xlearning
 from libs.env.shell import run_cmd
 from libs.env.hdfs import hdfs
 from libs.model.trainer.trainer import Trainer
+import json
 
 _training_log_dir = 'eventlog'
 
@@ -32,6 +33,9 @@ class TFLRTrainer(Trainer):
         self._local_dir = local_dir
         self._learning_rate = learning_rate
         self._l2 = l2
+        self._input_dim  =None
+        self._local_ckpt_dir = None
+        self._feature_weight = None
 
 
     @staticmethod
@@ -46,10 +50,50 @@ class TFLRTrainer(Trainer):
         hdfs_path = os.path.join(self._hdfs_dir, self.get_model_name())
         local_ckpt_dir = os.path.join(self._local_dir, self.get_model_name())
         hdfs.download_checkpoint(hdfs_path, local_ckpt_dir)
-
+        self._input_dim = input_dim
+        self._local_ckpt_dir = local_ckpt_dir
         lr = LogisticRegression(input_dim=input_dim)
         lr.from_checkpoint(local_ckpt_dir)
         return lr
+
+    def save_features_weight(self, filename):
+        f = None
+        try:
+            f = open(filename, mode='w', encoding='utf-8')
+            for i in self._feature_weight:
+                f.write(f'{json.dumps(i)}\n')
+            logger.info('[%s] success, write feature file: %s', self._job_id, filename)
+        except Exception as e:
+            logging.error('[%s] fail write %s', self._job_id, e)
+            raise e
+        finally:
+            if f:
+                f.close()
+                f = None
+
+
+
+    def print_features_weight(self,features_list):
+        lr = LogisticRegression(input_dim=self._input_dim)
+        lr.from_checkpoint(self._local_ckpt_dir)
+        weight = lr.get_tensor(self._local_ckpt_dir)
+        if len(weight) != len(features_list):
+            logger.info(f"wrong features length with weight length. Features: {len(features_list)}. Weight lenght:{len(weight)}")
+            return
+
+        d = {}
+        for i in range(0,len(features_list)):
+            d[features_list[i]] = weight[i]
+
+        sorted_list = sorted(d.items(), key=lambda d: abs(d[1]), reverse=True)
+        for k, v in sorted_list:
+            logger.info(f" feature name:{k} value:{v}")
+        self._feature_weight = sorted_list
+
+
+
+
+
 
     @staticmethod
     def get_worker_entrance():

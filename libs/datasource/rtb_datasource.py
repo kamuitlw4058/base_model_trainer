@@ -18,6 +18,8 @@ from libs.feature.feature_sql import FeatureSql
 from libs.feature.feature_factory import FeatureReader
 from datetime import datetime
 from conf import clickhouse
+from pyspark.sql import SQLContext
+from pyspark.sql.types import *
 
 _win_filter = ['TotalErrorCode = 0', 'Win_Timestamp > 0']
 
@@ -234,6 +236,7 @@ class RTBDataSource(DataSource):
         return raw
 
 
+
     def get_feature_datas(self):
         logging.info("train filters:" + str(self._train_filters))
         logging.info("test filters:" + str(self._test_filters))
@@ -275,7 +278,9 @@ class RTBDataSource(DataSource):
         spark = spark_session(self._job_id,spark_executor_num,self._local_dir)
         self._spark = spark
 
+
         features_readers = []
+        number_features = []
         if self._new_features:
             logging.info(f'[{self._job_id}] start get features...')
             start_date = datetime.strptime(self._start_date, '%Y-%m-%d')
@@ -298,7 +303,10 @@ class RTBDataSource(DataSource):
                     args.update(new_features.get_args())
 
                 feature_reader.read( start_date, end_date,clickhouse.ONE_HOST_CONF, session=spark, **args)
+                if feature_reader.get_number_features():
+                    number_features += feature_reader.get_number_features()
                 features_readers.append(feature_reader)
+
 
 
         spark_clickhouse_reader = SparkClickhouseReader(spark,_zamplus_rtb_local_url)
@@ -307,6 +315,7 @@ class RTBDataSource(DataSource):
 
         test = spark_clickhouse_reader.read_sql_parallel(test_sql,spark_executor_num)
 
+
         raw, features = self._get_features(raw)
 
         test, test_features = self._get_features(test)
@@ -314,13 +323,14 @@ class RTBDataSource(DataSource):
         if self._new_features:
             for reader in features_readers:
                 logging.info(f'[{self._job_id}] start union features...')
-                raw = FeatureReader.unionRaw(raw,reader.get_feature_df(),reader.get_feature_keys())
-                test = FeatureReader.unionRaw(test, reader.get_feature_df(),reader.get_feature_keys())
+                raw = FeatureReader.unionRaw(raw,reader.get_feature_df(),reader.get_feature_keys(),number_features=reader.get_feature()._number_features)
+                test = FeatureReader.unionRaw(test, reader.get_feature_df(),reader.get_feature_keys(),number_features=reader.get_feature()._number_features)
 
                 args = {'account': self._account, 'vendor': self._vendor}
                 if reader.get_feature().get_args():
                     args.update(reader.get_feature().get_args())
                 features = features + reader.get_feature().get_values(**args)
+
 
         raw = self._drop_feature_base_columns(raw)
 
@@ -335,7 +345,7 @@ class RTBDataSource(DataSource):
 
         logging.info(f'[{self._job_id}] raw count: {self._raw_count}')
 
-        return raw,test,features,self._get_multi_value_feature()
+        return raw,test,features,self._get_multi_value_feature(),number_features
 
     def close(self):
         try:

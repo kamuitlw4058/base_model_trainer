@@ -35,13 +35,13 @@ def prepare_data(job,job_manager):
 
         datasource = job_manager.get_datasource()
 
-        raw,test,features,multi_value_feature = datasource.get_feature_datas()
+        raw,test,features,multi_value_feature,number_features = datasource.get_feature_datas()
 
         executor_num = datasource.get_executor_num()
         #获取特征编码工厂
         feature_encoder = job_manager.get_feature_encoder()
 
-        train_res, test_res = feature_encoder.encoder(raw,test, features,multi_value_feature)
+        train_res, test_res = feature_encoder.encoder(raw,test, features,multi_value_feature,number_features = number_features)
         raw.unpersist()
        # train_res.repartition(32)
 
@@ -118,7 +118,12 @@ def run(job):
         trainer = job_manager.get_trainer()
         trainer.train(epoch,batch_size,worker_num,input_dim,data_names[0])
 
+        #######################################
+        # train result
+        #######################################
 
+        features= job_manager.get_feature_encoder().get_feature_list()
+        trainer.print_features_weight(features)
 
         #######################################
         # evaluate model performance
@@ -157,23 +162,24 @@ def run(job):
         # version = end_time
         # tracker.version = end_time
         #
-        # # write data
-        # base_name = f'{version:%Y%m%d%H%M}.{job_id}'
+        # write data
+        base_name = f'{job_id}'
         # status = 'ok' if runtime_conf.test_auc > 0.5 else 'unripe'
         # runtime_conf.status = status
         #
-        # file_list = []
-        # for w in [
-        #     Writer(func=fe.save_feature_index_map, suffix='index', args={}),
-        #     Writer(func=fe.save_feature_opts, suffix='feature', args={}),
-        #     Writer(func=he.save, suffix='he', args={}),
-        #     Writer(func=write_desc, suffix='desc', args={'job': job}),
-        #     Writer(func=model.save, suffix='pb', args={})
-        # ]:
-        #     tracker.status = f'write_{w.suffix}'
-        #     file_name = os.path.join(runtime_conf.local_dir, f'{base_name}.{w.suffix}')
-        #     w.func(file_name, **w.args)
-        #     file_list.append(file_name)
+        #file_list = []
+        for w in [
+            Writer(func=job_manager.get_feature_encoder().save_feature_index_map, suffix='index', args={}),
+            Writer(func=job_manager.get_feature_encoder().save_feature_opts, suffix='feature', args={}),
+            Writer(func=job_manager.get_trainer().save_features_weight, suffix='weight', args={}),
+            #Writer(func=he.save, suffix='he', args={}),
+            #Writer(func=write_desc, suffix='desc', args={'job': job}),
+            #Writer(func=model.save, suffix='pb', args={})
+        ]:
+            #tracker.status = f'write_{w.suffix}'
+            file_name = os.path.join(job.local_dir, f'{base_name}.{w.suffix}')
+            w.func(file_name, **w.args)
+            #file_list.append(file_name)
         #
         # # send out
         # if options.send and status == 'ok':

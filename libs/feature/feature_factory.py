@@ -20,6 +20,7 @@ from  conf import clickhouse
 from libs.env import hadoop
 from libs.env.hdfs import hdfs
 from libs.feature.clickhouse_sparksql_map import replace_map
+from libs.feature import udfs
 
 class FeatureReader:
     def __init__(self,feature,url,executor_num):
@@ -36,10 +37,7 @@ class FeatureReader:
         return sql
 
 
-    @provide_spark_session
-    def read(self,sql,prop,session=None):
-        raw = session.read.jdbc(self._url, sql, properties=prop)
-        return raw
+
 
     @provide_spark_session
     def readDays(self,start_date,end_date,prop,session=None,**kwargs):
@@ -204,6 +202,17 @@ class FeatureReader:
                                                  use_jdbc=False,
                                                  batch_cond=self._feature._batch_cond, session=session,
                                                  **kwargs)
+        elif self._feature._csv:
+            logger.info("get feature csv file...")
+            logger.info("csv url: " + str(self._feature._csv))
+            if self._feature._csv_sep:
+                sep= self._feature._csv_sep
+            else:
+                sep =','
+
+            featureDf = session.read.csv(self._feature._csv, header=True, inferSchema=True, sep=sep)
+            logger.info("csv feature count:" + str(featureDf.count()))
+            self._feature_df = featureDf
 
         else:
             logger.info("get feature from days list...")
@@ -223,14 +232,21 @@ class FeatureReader:
     def get_feature(self):
         return self._feature
 
+    def get_number_features(self):
+        return  self._feature._number_features
+
     def get_feature_keys(self):
         return self._feature.get_keys()
 
     @staticmethod
-    def unionRaw(rawDf,featureDf,keys):
+    def unionRaw(rawDf,featureDf,keys,number_features=None):
         raw = rawDf.alias("raw")
         feature = featureDf.alias("feature")
         joinedDf = raw.join(feature,keys,"left")
+        if number_features:
+            for f in number_features:
+                logger.info("int not zero....")
+                joinedDf = joinedDf.withColumn(f, udfs.int_default_zero(f))
         return joinedDf
 
 

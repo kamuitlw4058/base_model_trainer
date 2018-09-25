@@ -42,8 +42,8 @@ class FeatureSql(FeatureBase):
             dt = dt + datetime.timedelta(hours=1)
         return dates
 
-    def __init__(self, name,keys,values,sql, data_date,output,data_time_on_hour= False, pre_sql=None,temp_table_format=None,
-                 temp_table=None,batch_cond =None,start_date_offset=None,feature_args=None,once_sql = None):
+    def __init__(self, name,keys,values,sql=None, data_date=None,output = None,data_time_on_hour= False, pre_sql=None,temp_table_format=None,
+                 temp_table=None,batch_cond =None,start_date_offset=None,feature_args=None,once_sql = None,csv=None,csv_sep=None,number_features=None):
         if feature_args:
             feature_name = name.format(**feature_args)
             #feature_keys = [k.format(**feature_args) for k in keys]
@@ -67,6 +67,9 @@ class FeatureSql(FeatureBase):
         self._start_date_offset = start_date_offset
         self._feature_args = feature_args
         self._once_sql = once_sql
+        self._csv= csv
+        self._csv_sep= csv_sep
+        self._number_features = number_features
 
 
 
@@ -127,9 +130,9 @@ class FeatureSql(FeatureBase):
         return FeatureSql(feature_sql_json['name'],
                       feature_sql_json['keys'],
                       feature_sql_json['values'],
-                      feature_sql_json['sql'],
-                      feature_sql_json['data_date_col'],
-                      feature_sql_json['output_name'],
+                    sql =   feature_sql_json.get('sql'),
+                    data_date = feature_sql_json.get('data_date_col'),
+                    output =  feature_sql_json.get('output_name'),
                     pre_sql = feature_sql_json.get('pre_sql'),
                     temp_table_format = feature_sql_json.get('temp_table_format'),
                     temp_table=feature_sql_json.get('temp_table'),
@@ -138,6 +141,9 @@ class FeatureSql(FeatureBase):
                     start_date_offset=feature_sql_json.get('start_date_offset'),
                     feature_args=feature_sql_json.get('feature_args'),
                     once_sql=feature_sql_json.get('once_sql'),
+                    csv = feature_sql_json.get('csv'),
+                    csv_sep = feature_sql_json.get('csv_sep'),
+                    number_features=feature_sql_json.get('number_features'),
         )
 
     def get_data_date_col(self):
