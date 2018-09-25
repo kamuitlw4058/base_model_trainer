@@ -25,7 +25,7 @@ def weekday(dt):
 def int_default_zero(values):
     if values:
         return values
-    return 0
+    return 0.0
 
 
 @udf()
