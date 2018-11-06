@@ -1,0 +1,13 @@
+{
+    "feature_args":{"interval":10},
+    "name": "av_interval_minute{interval}_ctr",
+    "keys": ["Id_Zid","Bid_CompanyId","Media_VendorId","EventDate","Time_Minute_10"],
+    "values": [
+        "a{account}_v{vendor}_interval_min{interval}_clk",
+        "a{account}_v{vendor}_interval_min{interval}_imp",
+        "a{account}_v{vendor}_interval_min{interval}_ctr"
+    ],
+    "sql": "\nselect \n    Id_Zid,\n    {account} as Bid_CompanyId,\n    {vendor} as Media_VendorId,\n    if(TargetMinute == 143, toDate('{target_day:%Y-%m-%d}') +1,toDate('{target_day:%Y-%m-%d}')) as EventDate,\n    if(TargetMinute == 143, 143, TargetMinute +1) as Time_Minute_10,\n    CLK as    a{account}_v{vendor}_interval_min{interval}_clk,\n    IMP as    a{account}_v{vendor}_interval_min{interval}_imp,\n    case\n            when IMP < CLK then 1.0\n            when IMP >= CLK then floor(CLK/IMP*1.0,1)\n            else null\n    end a{account}_v{vendor}_interval_min{interval}_ctr\nfrom\n(\n    select \n        Id_Zid,\n        TargetMinute,\n        sum(length(CLKS)) as CLK,\n        sum(length(IMPS)) as  IMP\n    from\n    (\n        select\n            Id_Zid,\n            EventDate,\n           Time_Hour, \n           cast(Time_Timestamp as DateTime) as ts,\n            toMinute(ts ) as Time_Minute,\n            Time_Hour * 60 + Time_Minute as Date_Minute,\n            floor(Date_Minute / {interval}) as TargetMinute,\n            Click.Timestamp as CLKS,\n            Impression.Timestamp IMPS\n        from\n            zampda.rtb_all\n        prewhere\n            EventDate =toDate('{target_day:%Y-%m-%d}') and TotalErrorCode=0\n        where\n            Bid_CompanyId = {account}\n            and Media_VendorId =  {vendor}\n            and notEmpty(Impression.Timestamp)\n    )\n    group by Id_Zid,TargetMinute\n)\n",
+    "data_date_col": "target_day",
+    "output_name": "a{account}_t{target_day:%Y%m%d}"
+}

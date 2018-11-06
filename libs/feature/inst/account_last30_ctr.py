@@ -19,7 +19,8 @@ where
 group by Id_Zid,Bid_CompanyId,EventDate
 """
 
-
+from datetime import datetime
+print(pre_sql.format(target_day=datetime.now(),account=12,vendor=24))
 
 
 sql = """

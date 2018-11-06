@@ -1,0 +1,13 @@
+{
+    "name": "account_last30_ctr",
+    "feature_args":{"interval": 30},
+    "keys": ["Id_Zid",  "Bid_CompanyId", "EventDate"],
+    "values": ["a{account}_last{interval}_imp", "a{account}_last{interval}_clk", "a{account}_last{interval}_ctr"],
+    "pre_sql": "(\nselect\n    Id_Zid,\n    sum(length(Click.Timestamp)) as CLK,\n    sum(length(Impression.Timestamp)) as IMP,\n    EventDate as TargetDate,\n    Bid_CompanyId\n    \nfrom\n    zampda.rtb_all\nprewhere\n    EventDate = toDate('{target_day:%Y-%m-%d}') and TotalErrorCode=0\nwhere\n    Bid_CompanyId = {account}\n    and notEmpty(Impression.Timestamp)\ngroup by Id_Zid,Bid_CompanyId,EventDate\n)",
+    "temp_table_format":"a{account}_last30_ctr",
+    "temp_table":"temp_table",
+    "sql": "\nselect \n   Id_Zid,Bid_CompanyId,EventDate,  a{account}_last{interval}_imp,\n     a{account}_last{interval}_clk,\n     case\n            when a{account}_last{interval}_imp < a{account}_last{interval}_clk then 1.0\n            when a{account}_last{interval}_imp >= a{account}_last{interval}_clk then format_number(a{account}_last{interval}_clk/a{account}_last{interval}_imp*1.0,1)\n            else null\n     end as a{account}_last{interval}_ctr \nfrom \n(\n    select\n        Id_Zid,\n        sum(IMP) as a{account}_last{interval}_imp,\n        sum(CLK) as a{account}_last{interval}_clk,\n        to_date('{target_day:%Y-%m-%d}') as EventDate,Bid_CompanyId\n    from\n        {temp_table}\n    where \n        TargetDate >= date_sub(to_date('{target_day:%Y-%m-%d}'),30) and  TargetDate <= date_sub(to_date('{target_day:%Y-%m-%d}'),1)\n    group by Id_Zid,Bid_CompanyId\n)\n",
+    "data_date_col": "target_day",
+    "start_date_offset":-30,
+    "output_name": "a{account}_t{target_day:%Y%m%d}"
+}

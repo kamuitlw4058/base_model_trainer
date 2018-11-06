@@ -1,0 +1,11 @@
+{
+    "name": "car_geo_bucket",
+    "keys": [
+        "geo_city"
+    ],
+    "values": [
+        "car_4s_class",
+        "car_model_count"
+    ],
+    "csv": "/user/model/extend_data/car_geo_bucket.csv"
+}

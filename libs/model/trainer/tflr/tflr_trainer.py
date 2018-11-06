@@ -83,11 +83,9 @@ class TFLRTrainer(Trainer):
 
         d = {}
         for i in range(0,len(features_list)):
-            d[features_list[i]] = list(weight[i])[0]
+            d[features_list[i]] = float(list(weight[i])[0])
 
         sorted_list = sorted(d.items(), key=lambda d: abs(d[1]), reverse=True)
-        for k, v in sorted_list:
-            logger.info(f" feature name:{k} value:{v}")
         self._feature_weight = sorted_list
 
 

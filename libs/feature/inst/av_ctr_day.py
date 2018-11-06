@@ -35,7 +35,8 @@ select
             )
         group by Id_Zid
 """
-
+from datetime import datetime
+print(sql.format(target_day=datetime.now(),account=12,vendor=24,interval=1))
 
 values = ["a{account}_v{vendor}_last{interval}_imp","a{account}_v{vendor}_last{interval}_clk","a{account}_v{vendor}_last{interval}_ctr"]
 

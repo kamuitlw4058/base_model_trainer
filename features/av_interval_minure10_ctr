@@ -1,0 +1,9 @@
+{
+    "feature_args":{"interval":30},
+    "name": "account_clk_last{interval}_hold",
+    "keys": ["Id_Zid","EventDate"],
+    "values": ["a{account}_last{interval}_clk", "last{interval}_clk","a{account}_last{interval}_clk_hold"],
+    "sql": "\nselect \n        Id_Zid,\n        a{account}_last{interval}_clk,\n        last{interval}_clk,\n        floor(a{account}_last{interval}_clk/last{interval}_clk*1.0,1) as a{account}_last{interval}_clk_hold,\n        toDate('{target_day:%Y-%m-%d}') as EventDate\nfrom\n( \n    select \n        Id_Zid,\n        a{account}_last{interval}_clk,\n        last{interval}_clk\n    from \n    (\n    select \n        Id_Zid,\n        count(*) as last{interval}_clk\n    from \n        zampda.rtb_all\n    prewhere\n        EventDate >= toDate('{target_day:%Y-%m-%d}') - {interval} and   EventDate <= toDate('{target_day:%Y-%m-%d}') -1\n    where \n        notEmpty(Click.Timestamp)\n    group by\n        Id_Zid\n    ) ANY left join \n    (\n     select \n        Id_Zid,\n        count(*) as a{account}_last{interval}_clk\n    from \n        zampda.rtb_all\n    prewhere\n        EventDate >= toDate('{target_day:%Y-%m-%d}') - {interval} and   EventDate <= toDate('{target_day:%Y-%m-%d}') -1\n    where \n        Bid_CompanyId = {account}\n        and notEmpty(Click.Timestamp)\n    group by\n        Id_Zid,Bid_CompanyId\n    ) USING Id_Zid\n)\n\n",
+    "data_date_col": "target_day",
+    "output_name": "a{account}_t{target_day:%Y%m%d}"
+}

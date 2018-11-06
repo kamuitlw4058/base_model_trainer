@@ -1,0 +1,12 @@
+{
+    "name": "zid_last1_request",
+    "keys": ["Id_Zid", "Media_VendorId", "Bid_CompanyId", "EventDate"],
+    "values": ["a{account}_v{vendor}_last1_request"],
+    "pre_sql": "(\nselect \n    count(*)  as a{account}_v{vendor}_last1_request,\n    Id_Zid,\n    toDate('{target_day:%Y-%m-%d}') as TargetDate,\n    Time_Hour,\n     Media_VendorId,\n     Bid_CompanyId\nfrom \n    zampda.rtb_all\nprewhere \n   EventDate = toDate('{target_day:%Y-%m-%d}')-1\nwhere\n    Media_VendorId = {vendor}\n    and Bid_CompanyId = {account} \n    and Time_Hour >= {start_hour} and Time_Hour < {end_hour} \ngroup by Id_Zid,EventDate,Media_VendorId,Bid_CompanyId,Time_Hour\n)",
+    "temp_table_format":"a{account}_v{vendor}_last1_request",
+    "temp_table":"temp_table",
+    "sql": "\nselect \n    sum(a{account}_v{vendor}_last1_request) as a{account}_v{vendor}_last1_request,\n    Id_Zid,\n    TargetDate as EventDate,\n    Media_VendorId,\n    Bid_CompanyId \nfrom \n    {temp_table} \ngroup by \n    Id_Zid,TargetDate,Media_VendorId,Bid_CompanyId\n\n",
+    "data_date_col": "target_day",
+    "batch_cond":[{"start_hour": 0, "end_hour": 6}, {"start_hour": 6, "end_hour": 12}, {"start_hour": 12, "end_hour": 18}, {"start_hour": 18, "end_hour": 24}],
+    "output_name": "a{account}_v{vendor}_t{target_day:%Y%m%d}_s{start_hour}"
+}

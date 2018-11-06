@@ -1,0 +1,14 @@
+{
+    "name": "car_geo_nubmer",
+    "keys": [
+        "geo_city"
+    ],
+    "values": [
+        "car_city_4s_count",
+        "car_model_count"
+    ],
+    "number_features": [
+        "car_city_4s_count"
+    ],
+    "csv": "/user/model/extend_data/car_city_log.csv"
+}

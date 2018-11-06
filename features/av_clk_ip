@@ -1,0 +1,29 @@
+{
+    "feature_args": {
+        "interval": 30
+    },
+    "name": "av_clk_ip_last{interval}",
+    "keys": [
+        "RequestId"
+    ],
+    "values": [
+        "is_a{account}_v{vendor}_ip_clk"
+    ],
+    "pre_sql": [
+        {
+            "sql": "\nselect \n        Id_Zid,\n        groupArray(IP)[1] as clk_ip,\n        toDate('{target_day:%Y-%m-%d}') as TargetDate\n    from \n    (\n        select \n            Id_Zid,\n            IP,\n            count(*) as IP_COUNT\n        from \n        (\n\n                select\n                    Id_Zid,\n                    IP\n                from\n                    zampda.rtb_all\n                ARRAY JOIN Click.Ip AS IP\n                prewhere\n                    EventDate >= toDate('{target_day:%Y-%m-%d}') -{interval} and EventDate <= toDate('{target_day:%Y-%m-%d}') -1   and TotalErrorCode=0\n                where\n                    Bid_CompanyId = {account}\n                    and Media_VendorId =  {vendor}\n                    and notEmpty(Click.Timestamp)\n        )\n        group by\n                    Id_Zid,\n                    IP\n    )\n    group by \n        Id_Zid\n",
+            "output_template": "a{account}_v{vendor}_t{target_day:%Y%m%d}_clk_ips",
+            "table_name_template": "a{account}_v{vendor}_clk_ips",
+            "table_name": "av_clk_ips"
+        },
+        {
+            "sql": "\n    select\n        RequestId,\n        EventDate,\n        Id_Zid,\n         toInt64(Geo_Ip) as rtb_ip\n    from\n        zampda.rtb_all\n    prewhere\n        EventDate = toDate('{target_day:%Y-%m-%d}')  and TotalErrorCode=0\n    where\n        Bid_CompanyId = {account}\n        and Media_VendorId =  {vendor}\n        and notEmpty(Impression.Timestamp)\n",
+            "output_template": "a{account}_v{vendor}_t{target_day:%Y%m%d}_request",
+            "table_name_template": "a{account}_v{vendor}_request",
+            "table_name": "av_request"
+        }
+    ],
+    "sql": "\nselect \n    RequestId,\n    if({av_request}.rtb_ip = {av_clk_ips}.clk_ip,1,0) as is_a{account}_v{vendor}_ip_clk\nfrom \n    {av_request}\nleft join \n    {av_clk_ips}\non \n    {av_request}.Id_Zid ={av_clk_ips}.Id_Zid\n    and   {av_request}.EventDate = {av_clk_ips}.TargetDate\n\n",
+    "data_date_col": "target_day",
+    "output_name": "a{account}_v{vendor}_t{target_day:%Y%m%d}_ip_clk"
+}
