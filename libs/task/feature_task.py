@@ -13,7 +13,9 @@ from datetime import datetime
 from libs.utilis.time_profile import TimeMonitor
 from libs.job.feature_job_manager_imp import FeatureJobManger
 from libs.task import init_task_dir
-
+import matplotlib.pyplot as plt
+from conf import conf
+from libs.env.plot import set_matplot_zh_font
 
 NEED_PREPARE_DATA = True
 
@@ -26,6 +28,39 @@ def init_job(job):
     init_task_dir(job.local_dir, job.hdfs_dir)
 
 
+def feature_analysis_proc(raw,feature,plt_index):
+    clk_price = raw.where('is_clk = 1').select(feature).collect()
+    not_clk_price = raw.where('is_clk = 0').select(feature).collect()
+
+    plt.figure(plt_index)
+    plt.title(feature)
+    plt.hist(not_clk_price)
+    plt.hist(clk_price)
+    fig = plt.gcf()
+    fig.savefig(f"{conf.IMAGES_OUTPUT_BASE_DIR}/{feature}.png")
+
+def feature_analysis(raw):
+    set_matplot_zh_font()
+
+    feature_analysis_proc(raw, 'Education', 1)
+    feature_analysis_proc(raw,'Adb_Device_PriceLevel',2)
+    feature_analysis_proc(raw, 'weekday', 3)
+    #feature_analysis_proc(raw, 'Device_Brand', 4)
+    #feature_analysis_proc(raw, 'Adb_Device_Type', 5)
+    #feature_analysis_proc(raw, 'Adb_Device_Platform', 6)
+    #feature_analysis_proc(raw, 'Device_Brand', 7)
+    #feature_analysis_proc(raw, 'Device_Network', 8)
+    #feature_analysis_proc(raw, 'Device_OsVersion', 9)
+    #feature_analysis_proc(raw, 'Media_Domain', 10)
+    feature_analysis_proc(raw, 'geo_city', 11)
+    feature_analysis_proc(raw, 'Age', 12)
+    feature_analysis_proc(raw, 'Gender', 13)
+    feature_analysis_proc(raw, 'is_weekend', 14)
+
+
+
+
+
 
 def prepare_data(job,job_manager):
     job_id = job.job_name
@@ -36,6 +71,10 @@ def prepare_data(job,job_manager):
         datasource = job_manager.get_datasource()
 
         raw,test,features,multi_value_feature,number_features = datasource.get_feature_datas()
+
+        # feature_analysis(raw)
+        # import sys
+        # sys.exit(0)
 
         executor_num = datasource.get_executor_num()
         #获取特征编码工厂

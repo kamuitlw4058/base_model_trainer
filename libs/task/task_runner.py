@@ -9,17 +9,7 @@ logger = logging.getLogger(__name__)
 
 from datetime import datetime
 from multiprocessing import Process
-from libs.task import task
 
-
-def run(args):
-    try:
-        job, options = args
-        p = Process(target=task.run, args=(job, options), name=job.id)
-        p.start()
-        p.join()
-    except Exception as e:
-        logger.exception(e)
 
 
 def run_job(args):

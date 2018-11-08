@@ -14,9 +14,11 @@ if not os.path.exists('./log'):
     os.mkdir('./log')
 
 import json
-import logging.config
-logging.config.dictConfig(json.load(open('conf/logging.json')))
-logger = logging.getLogger(__name__)
+import logging
+import logging.config as log_config
+log_config.dictConfig(json.load(open('conf/logging.json')))
+
+logger = logging.getLogger("features_main")
 
 from conf import conf
 from datetime import datetime

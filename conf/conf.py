@@ -34,7 +34,9 @@ CLICKHOUSE_URL_TEMPLATE = 'clickhouse://{}/{}'
 
 PYCHARM = False
 
+IMAGES_OUTPUT_BASE_DIR='cache/images/'
+
 
 class JOB_ROOT_DIR:
     HDFS_ROOT = f'hdfs:///user/{os.environ.get("CTR_USER_NAME", "test")}/pctr_feature'
-    LOCAL_ROOT = os.path.abspath('./cache')
+    LOCAL_ROOT = os.path.abspath('./cache/jobs')
