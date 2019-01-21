@@ -1,3 +1,4 @@
 ['TotalErrorCode = 0',
 'Win_Price > 0',
-  "Device_Os='android'"]
+  "Device_Os='android'",
+  'has(Segment.Id, 100012)=0 ']

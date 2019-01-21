@@ -20,7 +20,7 @@ def main_fun_name():
 
 def main(flags):
     from libs.model.linear_model import LogisticRegression
-    from libs.dataio.tf_data_reader import DataGenerator
+    from libs.model.tf.tf_data_reader import DataGenerator
 
     logger.info('flags: %s', flags)
 
@@ -99,7 +99,7 @@ if __name__ == '__main__':
     logger.info('start tensorflow worker, tensorflow version = %s', tf.__version__)
     tf.logging.set_verbosity(logging.DEBUG)
 
-    from libs.dataio.fstool import print_dir
+    from libs.utilis.FsUtils import print_dir
     print_dir()
 
     flags, _ = parse_options()

@@ -2,12 +2,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-from libs.datasource.rtb_datasource_factory import RTBDataSourceFactory
+from libs.datasource.datasource_factory_imp import RTBDataSourceFactory
 from libs.feature.runtine_feature_encoder_factory import RuntineFeatureEncoderFactory
 from libs.dataoutput.rtb_dataouput_factory import RTBDataOutputFactory
 from libs.job.feature_job_manager import JobManager
 from libs.model.trainer.tflr.tflr_trainer_factory import TFLRTrainerFactory
 from libs.model.predictor.tflr.tflr_predictor_factory import TFLRPredictorFactory
+
 
 
 class FeatureJobManger(JobManager):
@@ -84,11 +85,11 @@ class FeatureJobManger(JobManager):
         return self._predictor.get_predictor()
 
     def get_trainer_params(self):
-        clk_sum,imp_sum = self.get_datasource().get_clk_imp()
+        clk_sum,imp_sum,data_size = self.get_datasource().get_clk_imp()
         epoch =self.get_epoch_num(clk_sum)
         batch_size = self.get_batch_size(clk_sum)
         executor_num = self.get_datasource().get_executor_num()
-        worker_num = min(self.get_worker_num(clk_sum),executor_num)
+        worker_num = min(self.get_worker_num(data_size),executor_num)
         input_dim = self.get_feature_encoder().feature_dim()
         #epoch,batch_size,worker_num,input_dim, data_name):
         return epoch,batch_size,worker_num,input_dim

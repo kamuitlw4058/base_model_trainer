@@ -1,0 +1,14 @@
+{
+    "sql": "\nselect\n\tId_Zid,\n\tround(avg(toFloat32OrZero(ExtMap4.Value[1]))/1e6,2) PCPC,\n\tround(avg(toFloat32OrZero(ExtMap4.Value[2])),2) as PCTR,\n\ttoDate('{target_day:%Y-%m-%d}') as EventDate\nfrom\n\tzampda.rtb_all\nprewhere\n\tEventDate >= today()-5 and TotalErrorCode=0\nwhere\n\tMedia_VendorId = 24\n\tand Bid_CompanyId = 12\n\tand notEmpty(Impression.Timestamp)\n\tand  Id_Zid GLOBAL in (\n\t\tselect distinct Id_Zid\n\t\tfrom zampda.rtb_all\n\t\tprewhere\n\t\t\tEventDate >= today()-1 and TotalErrorCode=0\n\t\twhere\n\t\t\tnotEmpty(Impression.Timestamp)\n\t\t\tand Media_VendorId = 24\n\t\t\tand Bid_CompanyId  = 12\n\t)\n\tgroup by Id_Zid\n",
+    "name": "pcpc_pctr",
+    "keys": [
+        "Id_Zid",
+        "EventDate"
+    ],
+    "values": [
+        "PCPC",
+        "PCTR"
+    ],
+    "data_date_col": "target_day",
+    "output_name": "a{account}_v{vendor}_t{target_day:%Y%m%d}"
+}

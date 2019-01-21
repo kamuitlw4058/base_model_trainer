@@ -1,0 +1,17 @@
+{
+ "sql": "select  Zid as Id_Zid,imp as imp_w{window},clk as clk_w{window},  toDate('{target_day:%Y-%m-%d}') as EventDate\nfrom\n( \nselect\n    Zid,\n    count(*) as imp\n\nfrom\n    audience.imp\nwhere\n    EventDate<  toDate('{target_day:%Y-%m-%d}')\n    and EventDate> toDate('{target_day:%Y-%m-%d}')-{window}\n    and Account={account}\n    and Vendor={vendor}\n    and Zid GLOBAL in (\n    select\n        distinct toString(Id_Zid)\n    from\n        zampda.rtb_all\n    where\n        EventDate=toDate('{target_day:%Y-%m-%d}')\n        and Bid_CompanyId={account}\n        and Media_VendorId={vendor}\n        and notEmpty(Impression.Timestamp)\n        and Device_Os='android'\n        and has(Segment.Id,100000+{account})=0\n    )\ngroup by Zid\n) \nany full join(\n\n\nselect\n    Zid,\n    count(*) as clk\n\nfrom\n    audience.clk\nwhere\n    EventDate<  toDate('{target_day:%Y-%m-%d}')\n    and EventDate> toDate('{target_day:%Y-%m-%d}')-{window}\n    and Account={account}\n    and Vendor={vendor}\n    and Zid GLOBAL in (\n    select\n        distinct toString(Id_Zid)\n    from\n        zampda.rtb_all\n    where\n        EventDate=toDate('{target_day:%Y-%m-%d}')\n        and Bid_CompanyId={account}\n        and Media_VendorId={vendor}\n        and notEmpty(Impression.Timestamp)\n        and Device_Os='android'\n        and has(Segment.Id,100000+{account})=0\n    )\ngroup by Zid\n\n) USing Zid",
+ "keys": [
+  "Id_Zid",
+  "EventDate"
+ ],
+ "values": [
+  "imp_w{window}",
+  "clk_w{window}"
+ ],
+ "data_date_col": "target_day",
+ "name": "av_ctr_day_window{window}",
+ "output_name": "av_ctr_day_v{vendor}_a{account}_d{target_day:%Y%m%d}_window{window}",
+ "feature_args": {
+  "window": "60"
+ }
+}

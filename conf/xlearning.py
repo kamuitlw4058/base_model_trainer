@@ -6,8 +6,8 @@ __email__ = 'mark@zamplus.com'
 
 
 XL_SUBMIT = '/data/tool/xlearning-1.2/bin/xl-submit'
-WORKER_MEMORY = '2G'
-WORKER_CORES = 1
+WORKER_MEMORY = '4G'
+WORKER_CORES = 2
 PS_MEMORY = '2G'
 PS_NUM = 1
 PS_CORES = 1

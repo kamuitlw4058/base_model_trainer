@@ -7,7 +7,7 @@ import pandas as pd
 from copy import deepcopy
 from sqlalchemy import create_engine
 from conf.clickhouse import hosts
-from libs.dataio.sql import SQL
+from libs.datasource.sql import SQL
 from conf.conf import MAX_POS_SAMPLE, CLK_LIMIT,JOB_ROOT_DIR
 from libs.env.spark import spark_session,SparkClickhouseReader
 from libs.feature.define import get_raw_columns,get_feature_base_columns
@@ -44,7 +44,7 @@ class RTBDataSource(DataSource):
                  account,vendor,
                  start_date,end_date,
                  test_start_date, test_end_date,
-                 new_features):
+                 new_features,new_features_args):
         self._url_template = url_template
         self._url_all = self._url_template.format(random.choice(hosts),_zamplus_rtb_all_database)
         self._url_local = self._url_template.format(random.choice(hosts),_zamplus_rtb_local_database)
@@ -73,6 +73,19 @@ class RTBDataSource(DataSource):
         self._filter_account = None
         self._filter_vendor = None
         self._data_split_mode = "byRamdon"
+        self._data_size=None
+
+        logger.info(f"new_features_args:{ new_features_args}")
+
+        try:
+            self._new_features_args = eval(new_features_args)
+        except Exception as e:
+            print(e)
+            self._new_features_args = None
+
+
+
+
 
         logger.info(" start date:" + self._start_date)
         logging.info(" start date:" + self._start_date)
@@ -150,7 +163,11 @@ class RTBDataSource(DataSource):
 
     @staticmethod
     def _get_executor_num(estimated_samples):
-        if estimated_samples < 40 * 10000:
+        if estimated_samples < 10 * 10000:
+            return 2
+        elif estimated_samples < 20 * 10000:
+            return 4
+        elif estimated_samples < 40 * 10000:
             return 8
         elif estimated_samples < 80 * 10000:
             return 16
@@ -221,7 +238,10 @@ class RTBDataSource(DataSource):
         return self._executor_num
 
     def get_clk_imp(self):
-        return self._clk_num,self._imp_num
+        if not self._clk_num:
+            self._estimated_samples_size()
+
+        return self._clk_num,self._imp_num,self._data_size
 
 
     def _drop_feature_base_columns(self,raw):
@@ -236,6 +256,37 @@ class RTBDataSource(DataSource):
         return raw
 
 
+    def _estimated_samples_size(self):
+        logging.info("train filters:" + str(self._train_filters))
+        logging.info("test filters:" + str(self._test_filters))
+
+        clk_num, imp_num = self._get_clk_imp(self._test_filters)
+
+        logging.info('[%s] test clk=%d, imp=%d', self._job_id, clk_num, imp_num)
+
+        clk_num, imp_num = self._get_clk_imp(self._train_filters)
+
+        self._clk_num, self._imp_num = clk_num, imp_num
+
+        logging.info('[%s] train clk=%d, imp=%d', self._job_id, clk_num, imp_num)
+
+        if clk_num < CLK_LIMIT:
+            raise RuntimeError(f'[{self._job_id}] too fewer clk({clk_num} < {CLK_LIMIT})')
+
+        pos_ratio, neg_ratio = self._get_sample_ratio(clk_num, imp_num)
+
+        logging.info('[%s] pos_ratio = %.4f neg_ratio = %.4f', self._job_id, pos_ratio, neg_ratio)
+
+        estimated_samples = int(clk_num * pos_ratio
+                                + (imp_num - clk_num) * neg_ratio)
+        logging.info(f'[{self._job_id}] estimated samples = {estimated_samples}')
+        self._data_size = estimated_samples
+
+        spark_executor_num = RTBDataSource._get_executor_num(estimated_samples)
+
+        logging.info(f'[{self._job_id}] spark_executor_num: {spark_executor_num}')
+        self._executor_num = spark_executor_num
+
 
     def get_feature_datas(self):
         logging.info("train filters:" + str(self._train_filters))
@@ -247,20 +298,23 @@ class RTBDataSource(DataSource):
 
         clk_num, imp_num = self._get_clk_imp(self._train_filters)
 
-        self._clk_num ,self._imp_num = clk_num,imp_num
+        self._clk_num, self._imp_num = clk_num, imp_num
 
         logging.info('[%s] train clk=%d, imp=%d', self._job_id, clk_num, imp_num)
 
         if clk_num < CLK_LIMIT:
             raise RuntimeError(f'[{self._job_id}] too fewer clk({clk_num} < {CLK_LIMIT})')
 
-        pos_ratio, neg_ratio = self._get_sample_ratio(clk_num,imp_num)
+        pos_ratio, neg_ratio = self._get_sample_ratio(clk_num, imp_num)
 
         logging.info('[%s] pos_ratio = %.4f neg_ratio = %.4f', self._job_id, pos_ratio, neg_ratio)
 
         estimated_samples = int(clk_num * pos_ratio
                                 + (imp_num - clk_num) * neg_ratio)
         logging.info(f'[{self._job_id}] estimated samples = {estimated_samples}')
+        self._data_size = estimated_samples
+
+
 
         sql = RTBDataSource._build_feature_datas_sql(self._train_filters, pos_ratio, neg_ratio, self._local_table)
         sql = RTBDataSource._get_jdbc_sql(sql)
@@ -281,7 +335,32 @@ class RTBDataSource(DataSource):
 
         features_readers = []
         number_features = []
+        features_args = None
+        features_args_len = 0
+        print(type(self._new_features_args))
+        if isinstance(self._new_features_args,list):
+            features_args_len = len(self._new_features_args)
+        elif isinstance(self._new_features_args,dict):
+            features_args_len = 0
+        else:
+            features_args_len = -1
+
+
         if self._new_features:
+            filepaths =  self._new_features.split("#")
+            print(f"features count:{len(filepaths)} features args len{features_args_len}")
+            if len(filepaths) != features_args_len:
+                print(f"features count:{len(filepaths)} features args len{features_args_len}")
+                if features_args_len == 0:
+                    for  i in len(filepaths):
+                        features_args.append(i)
+                else:
+                    features_args = self._new_features_args
+            else:
+                features_args = self._new_features_args
+
+            print(f"orig features args:{features_args}")
+
             logging.info(f'[{self._job_id}] start get features...')
             start_date = datetime.strptime(self._start_date, '%Y-%m-%d')
 
@@ -292,7 +371,7 @@ class RTBDataSource(DataSource):
                     end_date = datetime.strptime(self._end_date, '%Y-%m-%d')
                 else:
                     end_date = datetime.strptime(datetime.now().strftime('%Y-%m-%d'), '%Y-%m-%d')
-
+            i = 0
             for f_path in self._new_features.split("#"):
                 logging.info(f'[{self._job_id}] start process new features...')
                 logging.info(f'[{self._job_id}] load features file from {f_path}')
@@ -301,7 +380,11 @@ class RTBDataSource(DataSource):
                 args = {'account': self._account, 'vendor': self._vendor}
                 if new_features.get_args():
                     args.update(new_features.get_args())
-
+                if features_args:
+                    print(f"updage args:{features_args[i]}")
+                    args.update(features_args[i])
+                i+=1
+                print(f"read features args:{args}")
                 feature_reader.read( start_date, end_date,clickhouse.ONE_HOST_CONF, session=spark, **args)
                 if feature_reader.get_number_features():
                     number_features += feature_reader.get_number_features()
@@ -344,6 +427,8 @@ class RTBDataSource(DataSource):
         raw.show(10)
 
         logging.info(f'[{self._job_id}] raw count: {self._raw_count}')
+
+
 
         return raw,test,features,self._get_multi_value_feature(),number_features
 

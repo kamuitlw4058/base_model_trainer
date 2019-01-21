@@ -11,10 +11,16 @@ def parser(options):
     job = FeatureJob()
     job.account = options.account
     job.vendor = options.vendor
+    job.datasource = options.datasource
+    job.filepath = options.filepath
+    job.filetype = options.filetype
+
     if not options.job_name:
         job_name = options.feature_name + "_{ts:%y%m%d_%H%M%S}".format(ts=datetime.now())
+        job.overwrite_features = True
     else:
         job_name = options.job_name
+        job.overwrite_features =False
     job.job_name = job_name
 
     job.local_dir = os.path.join(JOB_ROOT_DIR.LOCAL_ROOT, job.job_name)
@@ -25,6 +31,7 @@ def parser(options):
     job.test_start_date = options.test_start_date
     job.test_end_date = options.test_end_date
     job.new_features = options.new_features
+    job.new_features_args=options.new_features_args
 
     #TODO: 这边后续如何传入参数，数据格式，配置文件格式都需要确认
     with open(options.filters) as filter_file:

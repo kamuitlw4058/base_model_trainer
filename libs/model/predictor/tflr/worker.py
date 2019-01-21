@@ -10,7 +10,7 @@ sys.path.append('.')
 
 import argparse
 from libs.model.linear_model import LogisticRegression
-from libs.dataio.tf_data_reader import DataGenerator
+from libs.model.tf.tf_data_reader import DataGenerator
 from libs.env.hdfs import hdfs
 
 
@@ -50,7 +50,7 @@ def main(flags):
         local_filename = os.path.join(local_root, basename)
         _predict(lr, data_name, local_filename)
 
-        print_dir(local_root)
+        # print_dir(local_root)
 
         hdfs_dst = os.path.join(flags.hdfs_dir, f'{data_name}_pred', basename)
         hdfs.put(local_filename, hdfs_dst)
@@ -78,9 +78,9 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
 
     logger.info('start tensorflow worker ...')
-
-    from libs.dataio.fstool import print_dir
-    print_dir()
+    #
+    # from libs.dataio.fstool import print_dir
+    # print_dir()
 
     flags, _ = parse_options()
     main(flags)

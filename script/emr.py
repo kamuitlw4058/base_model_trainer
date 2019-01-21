@@ -11,11 +11,14 @@ class EMR:
     def __init__(self):
         self._emr = boto3.client('emr')
 
-    def active_cluster_id(self, created_after):
+    def active_cluster_id(self, created_after, cluster_name='zampda_model_release'):
+        cluster_id = None
         ret = self._emr.list_clusters(CreatedAfter=created_after, ClusterStates=['RUNNING', 'WAITING'])
         print(ret)
         if len(ret['Clusters']) >0:
-            cluster_id = ret['Clusters'][0]['Id']
+            for cluster in ret['Clusters']:
+                if cluster['Name'] == cluster_name:
+                    cluster_id = cluster['Id']
             return cluster_id
         else:
             return None

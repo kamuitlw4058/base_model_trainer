@@ -49,6 +49,8 @@ def spark_session(spark_id, executor_num, local_dir):
     if not local_dir:
         local_dir = os.path.join(JOB_ROOT_DIR.LOCAL_ROOT, spark_id)
 
+    os.makedirs( os.path.join(local_dir, 'tmp'))
+    #os.makedirs(os.path.join(local_dir, 'metastore_db'))
     spark_conf = SparkConf()
     conf_details = [
         # ('spark.yarn.jars', ''),

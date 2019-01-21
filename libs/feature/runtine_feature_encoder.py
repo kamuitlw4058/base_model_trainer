@@ -22,6 +22,8 @@ class RuntineFeatureEncoder(FeatureEncoder):
 
         logger.info(' schema %s', raw.schema)
         logger.info(' columns %s',  raw.schema.names)
+        logger.info('features: %s', features)
+        logger.info('multi_value_category_feature: %s',multi_value_category_feature)
         logger.info(f'input number feature:{number_features}')
         logger.info(f'input features :{features}')
         self._category_feature = [i for i in features if raw.agg(functions.countDistinct(raw[i]).alias('cnt')).collect()[0].cnt > 1]
@@ -47,16 +49,25 @@ class RuntineFeatureEncoder(FeatureEncoder):
         encoders = [OneHotEncoder(inputCol="{}_idx".format(c), outputCol="{}_vec".format(c), dropLast=True)
                     for c in self._category_feature]
 
-        self._multi_value_category_feature = multi_value_category_feature
-
-        multi_enc = [MultiCategoryEncoder(inputCol=i, outputCol=f'{i}_vec') for i in self._multi_value_category_feature]
+        if multi_value_category_feature:
+            self._multi_value_category_feature = multi_value_category_feature
+            multi_enc = [MultiCategoryEncoder(inputCol=i, outputCol=f'{i}_vec') for i in self._multi_value_category_feature]
+        else:
+            multi_enc =None
 
         vec_cols = ['{}_vec'.format(c) for c in self.get_feature_names()]
-        if len(self._number_features) > 0:
+
+        if  len(self._number_features) > 0:
             vec_cols += self._number_features
 
         assembler = VectorAssembler(inputCols=vec_cols, outputCol='feature')
-        pipeline = Pipeline(stages=string_indexers + encoders + multi_enc + [assembler])
+
+        if multi_value_category_feature:
+            stages = string_indexers + encoders + multi_enc + [assembler]
+        else:
+            stages =string_indexers + encoders  + [assembler]
+
+        pipeline = Pipeline(stages=stages)
 
         self._model = pipeline.fit(train)
 

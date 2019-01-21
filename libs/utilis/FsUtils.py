@@ -2,9 +2,6 @@
 # -*- coding: utf-8 -*-
 import os
 
-__author__ = 'mark'
-__email__ = 'mark@zamplus.com'
-
 
 def print_dir(cwd=os.getcwd()):
     print(f'ls: {cwd}/')

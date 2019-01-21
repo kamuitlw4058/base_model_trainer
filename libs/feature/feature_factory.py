@@ -193,7 +193,7 @@ class FeatureReader:
 
             if self._feature._once_sql:
                 sql = self._feature._sql.format(**kwargs)
-                featureDf = session.sql(sql)
+                featureDf = session.read.jdbc(self._url, sql, properties=prop)
             else:
                 featureDf = self.readDaysWithSql(start_date, end_date,
                                                  self._feature._sql,
@@ -219,8 +219,10 @@ class FeatureReader:
             logger.info("get feature from days list...")
             logger.info(f"params:{kwargs}")
             if self._feature._once_sql:
+                logger.info("use once sql...")
                 sql = self._feature._sql.format(**kwargs)
-                featureDf = session.sql(sql)
+                sql = FeatureReader.jdbc_sql(sql)
+                featureDf = session.read.jdbc(self._url, sql, properties=prop)
             else:
                 featureDf = self.readDaysWithSql(start_date, end_date, self._feature._sql, self._feature._output_name, prop, batch_cond=self._feature._batch_cond,session=session,
                                                  **kwargs)

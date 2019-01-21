@@ -39,7 +39,7 @@ def feature_tasks(options):
     locker = LockMe()
     try:
         if locker.try_lock():
-            pack_libs(False)
+            pack_libs(True)
             jobs = job_parser(options)
 
             with ProcessPoolExecutor(max_workers=1) as executor:
@@ -74,8 +74,13 @@ if __name__ == '__main__':
     args_parser.add_argument('-e', '--train-end-date', dest='end_date', type=str, default=None)
     args_parser.add_argument('-S', '--test-start-date', dest='test_start_date', type=str, default=None)
     args_parser.add_argument('-E', '--test-end-date', dest='test_end_date', type=str, default=None)
+    args_parser.add_argument('-D', '--datasource', dest='datasource', type=str, help='datasource',default='rtb')
+    args_parser.add_argument('-t', '--filetype', dest='filetype', type=str, help='file source ,file type', default='csv')
+    args_parser.add_argument('-p', '--filepath', dest='filepath', type=str, help='file source ,file path', default='')
     args_parser.add_argument('-d', '--debug-pycharm', dest='pycharm', action="store_true", help='pycharm runner')
     args_parser.add_argument('-F', '--use-new-feature', dest='new_features', type=str,  help='new feature path',default=None)
+    args_parser.add_argument('-A', '--new-feature-args', dest='new_features_args', type=str, help='new feature args',
+                             default=None)
     args_parser.add_argument('-l', '--learning_rate', dest='learning_rate',  type=int, default=0.001,help='learning_rate')
     args_parser.add_argument('-L', '--l2', dest='l2',  type=int,default=0.001,help='l2')
     options = args_parser.parse_args()

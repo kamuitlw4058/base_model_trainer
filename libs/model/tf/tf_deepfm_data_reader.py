@@ -3,7 +3,7 @@ logger = logging.getLogger(__name__)
 
 import os
 import numpy as np
-from libs.dataio.utils import xlearning_progress
+from libs.model.tf.utils import xlearning_progress
 import pyarrow.parquet as pq
 
 
@@ -14,6 +14,7 @@ class DataGenerator:
         logger.info(f'data file number = {len(self._file_list)}')
         self._dim = input_dim
         self._epoch = epoch
+        logger.info(f'input dim: {input_dim} epoch: {epoch} batch size:{batch_size}')
 
     def sync_next_batch(self):
         total = self._epoch * len(self._file_list)
@@ -30,11 +31,16 @@ class DataGenerator:
                 for batch in table.to_batches(self._batch_size):
                     df = batch.to_pandas()
                     row_num = df.shape[0]
+
+                    ids = range(self._dim)
+                    ids = np.tile(ids, (row_num, 1))
+
                     for i, row in df.iterrows():
                         x[i, row.feature_indices] = 1.0
                         y[i, 0] = row.is_clk
 
-                    yield (x[:row_num], y[:row_num])
+                    yield (ids,x[:row_num], np.reshape(y[:row_num],[-1]))
+
                     x.fill(0)
                     y.fill(0)
 

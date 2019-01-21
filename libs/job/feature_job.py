@@ -60,7 +60,7 @@ class FeatureJob(AttributeDict):
         tracker.end_date = self.get("end_date")
         tracker.account = self.get("account")
         tracker.vendor = self.get("vendor")
-        tracker.filter= self.get("filters")
+        tracker.filter= str(self.get("filters"))
         tracker.train_auc = self.get("train_auc")
         tracker.test_auc = self.get("test_auc")
         tracker.new_features = self.get("new_features")
@@ -70,6 +70,7 @@ class FeatureJob(AttributeDict):
         tracker.os = self.get("os")
         tracker.audience = self.get("audience")
         tracker.status = self.get("status")
+        tracker.new_features_args = str(self.get("new_features_args"))
 
         df = tracker.get_df()
 

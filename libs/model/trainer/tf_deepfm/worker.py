@@ -19,8 +19,8 @@ def main_fun_name():
 
 
 def main(flags):
-    from libs.model.linear_model import LogisticRegression
-    from libs.dataio.tf_data_reader import DataGenerator
+    from libs.model.deepfm import DeepFM
+    from libs.model.tf.tf_deepfm_data_reader import DataGenerator
 
     logger.info('flags: %s', flags)
 
@@ -42,11 +42,12 @@ def main(flags):
     with tf.device(tf.train.replica_device_setter(worker_device=device_name, cluster=cluster)):
         # build model
         with tf.name_scope('input'):
-            x = tf.placeholder(tf.float32, shape=[None, flags.input_dim], name='x')
-            y_ = tf.placeholder(tf.float32, shape=[None, 1], name='y')
+            ids = tf.placeholder(dtype=tf.int32, shape=[None, flags.input_dim], name='ids')
+            vals = tf.placeholder(tf.float32, shape=[None, flags.input_dim], name='x')
+            lables = tf.placeholder(tf.float32, shape=[None], name='y')
 
-        model = LogisticRegression(flags.input_dim, l2=flags.l2)
-        train_op = model.build_model(x, y_, flags.learning_rate)
+        model = DeepFM(flags.input_dim, l2=flags.l2)
+        train_op = model.build_model(ids,vals, lables, flags.learning_rate)
         saver = tf.train.Saver()
 
         data_g = DataGenerator(flags.data, flags.input_dim, flags.batch_size, flags.training_epochs)
@@ -55,8 +56,8 @@ def main(flags):
         chief_hook = [tf.train.CheckpointSaverHook(checkpoint_dir=flags.model, save_steps=1000, saver=saver)]
 
         def step_fn(step_context):
-            train_x, train_y = next(next_batch)
-            step_context.run_with_hooks(train_op, feed_dict={x: train_x, y_: train_y})
+            train_ids,train_x, train_y = next(next_batch)
+            step_context.run_with_hooks(train_op, feed_dict={ids:train_ids, vals: train_x, lables: train_y})
 
         with tf.train.MonitoredTrainingSession(master=server.target,
                                                is_chief=(flags.task_index == 0),
@@ -99,7 +100,7 @@ if __name__ == '__main__':
     logger.info('start tensorflow worker, tensorflow version = %s', tf.__version__)
     tf.logging.set_verbosity(logging.DEBUG)
 
-    from libs.dataio.fstool import print_dir
+    from libs.utilis.FsUtils import print_dir
     print_dir()
 
     flags, _ = parse_options()

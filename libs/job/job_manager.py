@@ -5,7 +5,6 @@ import os
 import pandas as pd
 from datetime import date, datetime
 from sklearn.utils import shuffle
-from libs.dataio.db import DataInfo
 from libs.job.base_job import BASE_JOB
 from conf.conf import IMP_LIMIT, CLK_LIMIT, WINDOW
 import conf.jobs as custom_jobs
