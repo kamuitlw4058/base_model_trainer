@@ -353,9 +353,12 @@ class RTBDataSource(DataSource):
                 print(f"features count:{len(filepaths)} features args len{features_args_len}")
                 if features_args_len == 0:
                     for  i in len(filepaths):
-                        features_args.append(i)
-                else:
+                        features_args.append(self._new_features_args)
+                elif features_args_len == -1:
                     features_args = self._new_features_args
+                else:
+                    for  i in len(filepaths):
+                        features_args.append(self._new_features_args[0])
             else:
                 features_args = self._new_features_args
 
