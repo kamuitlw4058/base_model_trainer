@@ -207,6 +207,7 @@ def run(job):
         # runtime_conf.status = status
         #
         #file_list = []
+
         for w in [
             Writer(func=job_manager.get_feature_encoder().save_feature_index_map, suffix='index', args={}),
             Writer(func=job_manager.get_feature_encoder().save_feature_opts, suffix='feature', args={}),
@@ -216,7 +217,10 @@ def run(job):
             #Writer(func=model.save, suffix='pb', args={})
         ]:
             #tracker.status = f'write_{w.suffix}'
+
             file_name = os.path.join(job.local_dir, f'{base_name}.{w.suffix}')
+            if w.suffix == "weight":
+                job.features_weight = file_name
             w.func(file_name, **w.args)
             #file_list.append(file_name)
         #

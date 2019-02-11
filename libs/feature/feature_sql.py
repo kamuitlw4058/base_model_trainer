@@ -124,9 +124,15 @@ class FeatureSql(FeatureBase):
         json.dump(d, f, ensure_ascii=False)
 
     @staticmethod
-    def from_file(filename):
+    def from_file(filename,**kwargs):
         f = open(filename, 'r', encoding='utf-8')
         feature_sql_json = json.load(f)
+        feature_args = feature_sql_json.get('feature_args')
+        if kwargs != None:
+            feature_args.update(**kwargs)
+
+
+
         return FeatureSql(feature_sql_json['name'],
                       feature_sql_json['keys'],
                       feature_sql_json['values'],
@@ -139,7 +145,7 @@ class FeatureSql(FeatureBase):
                     data_time_on_hour = feature_sql_json.get('data_time_on_hour'),
                     batch_cond=feature_sql_json.get('batch_cond'),
                     start_date_offset=feature_sql_json.get('start_date_offset'),
-                    feature_args=feature_sql_json.get('feature_args'),
+                    feature_args=feature_args,
                     once_sql=feature_sql_json.get('once_sql'),
                     csv = feature_sql_json.get('csv'),
                     csv_sep = feature_sql_json.get('csv_sep'),

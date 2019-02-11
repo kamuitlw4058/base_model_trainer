@@ -348,9 +348,8 @@ class RTBDataSource(DataSource):
 
         if self._new_features:
             filepaths =  self._new_features.split("#")
-            print(f"features count:{len(filepaths)} features args len{features_args_len}")
+            print(f"features count:{len(filepaths)} features args len:{features_args_len}")
             if len(filepaths) != features_args_len:
-                print(f"features count:{len(filepaths)} features args len{features_args_len}")
                 if features_args_len == 0:
                     for  i in len(filepaths):
                         features_args.append(self._new_features_args)
@@ -362,7 +361,6 @@ class RTBDataSource(DataSource):
             else:
                 features_args = self._new_features_args
 
-            print(f"orig features args:{features_args}")
 
             logging.info(f'[{self._job_id}] start get features...')
             start_date = datetime.strptime(self._start_date, '%Y-%m-%d')
@@ -378,16 +376,17 @@ class RTBDataSource(DataSource):
             for f_path in self._new_features.split("#"):
                 logging.info(f'[{self._job_id}] start process new features...')
                 logging.info(f'[{self._job_id}] load features file from {f_path}')
-                new_features = FeatureSql.from_file(f_path)
+                if features_args:
+                    new_features = FeatureSql.from_file(f_path,**features_args[i])
+                else:
+                    new_features = FeatureSql.from_file(f_path)
                 feature_reader = FeatureReader(new_features, _zamplus_rtb_local_url,spark_executor_num)
                 args = {'account': self._account, 'vendor': self._vendor}
                 if new_features.get_args():
                     args.update(new_features.get_args())
                 if features_args:
-                    print(f"updage args:{features_args[i]}")
                     args.update(features_args[i])
                 i+=1
-                print(f"read features args:{args}")
                 feature_reader.read( start_date, end_date,clickhouse.ONE_HOST_CONF, session=spark, **args)
                 if feature_reader.get_number_features():
                     number_features += feature_reader.get_number_features()

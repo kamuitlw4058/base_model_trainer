@@ -71,6 +71,7 @@ class FeatureJob(AttributeDict):
         tracker.audience = self.get("audience")
         tracker.status = self.get("status")
         tracker.new_features_args = str(self.get("new_features_args"))
+        tracker.new_features_weight = str(self.get("features_weight"))
 
         df = tracker.get_df()
 
