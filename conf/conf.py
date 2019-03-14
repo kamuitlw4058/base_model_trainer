@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
+import random
+from   conf.clickhouse import hosts
 __author__ = 'mark'
 __email__ = 'mark@zamplus.com'
 
@@ -31,6 +32,19 @@ RTB_ALL_TABLE_NAME = 'rtb_all'
 RTB_LOCAL_TABLE_NAME = 'rtb_local2'
 
 CLICKHOUSE_URL_TEMPLATE = 'clickhouse://{}/{}'
+
+
+ZAMPLUS_ZAMPDA_DATABASE = 'zampda'
+
+ZAMPLUS_ZAMPDA_LOCAL_DATABASE = 'zampda_local'
+
+ZAMPLUS_RTB_ALL_URL = f'clickhouse://{random.choice(hosts)}/{ZAMPLUS_ZAMPDA_DATABASE}'
+
+ZAMPLUS_RTB_ALL_JDBC_URL = f'jdbc:clickhouse://{random.choice(hosts)}/{ZAMPLUS_ZAMPDA_DATABASE}'
+ZAMPLUS_RTB_LOCAL_JDBC_URL = f'jdbc:clickhouse://{random.choice(hosts)}/{ZAMPLUS_ZAMPDA_LOCAL_DATABASE}'
+
+CLICKHOUSE_DAILY_SQL_DATE_COL='target_day'
+
 
 PYCHARM = False
 

@@ -7,6 +7,14 @@ from libs.job.feature_job_manager_imp import FeatureJobManger
 import os
 from conf.conf import JOB_ROOT_DIR
 
+
+def get_job_local_dir(job_name,subdir=None):
+    if subdir is not None:
+        return os.path.join(os.path.join(JOB_ROOT_DIR.LOCAL_ROOT, job_name),subdir)
+    return os.path.join(JOB_ROOT_DIR.LOCAL_ROOT, job_name)
+
+
+
 def parser(options):
     job = FeatureJob()
     job.account = options.account

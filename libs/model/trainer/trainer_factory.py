@@ -1,10 +1,16 @@
-from abc import ABC,abstractmethod
+from libs.model.trainer.tflr.tflr_trainer import TFLRTrainer
 
-class TrainerFactory(ABC):
+class TrainerFactory():
+    @staticmethod
+    def get_trainer(trainer_name,**kwargs):
 
-    @abstractmethod
-    def get_trainer(self):
-        return
+        trainer= None
+
+        if trainer_name == "tflr":
+            trainer =  TFLRTrainer(kwargs['name'],
+                        kwargs['hdfs_dir'],
+                        kwargs['local_dir'])
+        return trainer
 
 
 

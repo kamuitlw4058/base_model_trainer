@@ -4,7 +4,7 @@ __author__ = 'mark'
 __email__ = 'mark@zamplus.com'
 
 import os
-from conf.hadoop import HDFS_CACHE_ROOT, HDFS_CODE_CACHE, PYTHON_ENV_CACHE
+from conf.hadoop import HDFS_CACHE_ROOT, HDFS_CODE_CACHE, PYTHON_ENV_CACHE,HDFS_EXTNED_DATA_ROOT
 
 
 SPARK_HOME = '/data/tool/env/spark'
@@ -15,6 +15,8 @@ DRIVER_PYTHON = '/data/anaconda3/bin/python'
 SPARK_CONFIG = dict(
     SPARK_ARCHIVES=','.join([
         f'{PYTHON_ENV_CACHE}#python3',
-        f'{HDFS_CODE_CACHE}#libs'
+        f'{HDFS_CODE_CACHE}#libs',
+        f'{HDFS_EXTNED_DATA_ROOT}#image',
+        f'{HDFS_EXTNED_DATA_ROOT}2#weights',
     ]),
 )

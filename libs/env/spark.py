@@ -35,7 +35,7 @@ def provide_spark_session(func):
 
 
 
-def spark_session(spark_id, executor_num, local_dir):
+def spark_session(spark_id, executor_num, local_dir=None):
     logger.info('[%s] init spark session', spark_id)
 
     # spark
@@ -48,8 +48,8 @@ def spark_session(spark_id, executor_num, local_dir):
 
     if not local_dir:
         local_dir = os.path.join(JOB_ROOT_DIR.LOCAL_ROOT, spark_id)
-
-    os.makedirs( os.path.join(local_dir, 'tmp'))
+    if not os.path.exists(os.path.join(local_dir, 'tmp')):
+        os.makedirs( os.path.join(local_dir, 'tmp'))
     #os.makedirs(os.path.join(local_dir, 'metastore_db'))
     spark_conf = SparkConf()
     conf_details = [
@@ -84,7 +84,8 @@ def spark_session(spark_id, executor_num, local_dir):
     ]
 
     for k, v in conf_details:
-        print(f'[{spark_id}] spark config {k} = {v}')
+        pass
+        #print(f'[{spark_id}] spark config {k} = {v}')
 
     spark_conf.setAll(conf_details)
     spark_conf.setAppName(f'{spark_id}')
@@ -98,14 +99,21 @@ class SparkClickhouseReader:
         self._spark = spark
         self._url = url
 
-    def read_sql_parallel(self,sql,repartition=None):
-
-        logger.info(f"spark session url:{self._url}")
-        df = self._spark.read.jdbc(self._url, sql, properties=clickhouse.CONF)
+    def read_sql_parallel(self,sql,repartition=None,url=None):
+        if url:
+            apply_url = url
+        else:
+            apply_url = self._url
+        logger.info(f"spark session url:{apply_url}")
+        df = self._spark.read.jdbc(apply_url, sql, properties=clickhouse.CONF)
         if repartition:
             df = df.repartition(repartition)
         return df
 
-    def read_sql(self,sql):
-        df = self._spark.read.jdbc(self._url, sql, properties=clickhouse.ONE_HOST_CONF)
+    def read_sql(self,sql,url=None):
+        if url:
+            apply_url = url
+        else:
+            apply_url = self._url
+        df = self._spark.read.jdbc(apply_url, sql, properties=clickhouse.ONE_HOST_CONF)
         return df

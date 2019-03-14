@@ -1,7 +1,7 @@
 from abc import ABC,abstractmethod
 
 
-class DataSoureFactory(ABC):
+class DataSourceFactory(ABC):
 
     @abstractmethod
     def get_datasource(self,job):

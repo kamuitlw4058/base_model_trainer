@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3j
 # -*- coding: utf-8 -*-
 
 __author__ = 'mark'
@@ -77,8 +77,6 @@ class LogisticRegression:
         reader = tf.train.NewCheckpointReader(ckpt.model_checkpoint_path)
         all_variables = reader.get_variable_to_shape_map()
         w = reader.get_tensor("lr/kernel")
-        print(w.shape)
-        print(w)
         return w
 
 

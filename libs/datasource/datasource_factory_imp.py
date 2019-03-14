@@ -1,10 +1,10 @@
-from libs.datasource.datasource_factory import DataSoureFactory
+from libs.datasource.datasource_factory import DataSourceFactory
 from libs.datasource.rtb_datasource import RTBDataSource
 from conf.conf import RTB_ALL_TABLE_NAME, RTB_LOCAL_TABLE_NAME,CLICKHOUSE_URL_TEMPLATE
 from libs.datasource.file_datasource import FileDataSource
 from libs.env.spark import spark_session
 
-class RTBDataSourceFactory(DataSoureFactory):
+class RTBDataSourceFactory(DataSourceFactory):
 
     def _get_url_template(self):
         return CLICKHOUSE_URL_TEMPLATE

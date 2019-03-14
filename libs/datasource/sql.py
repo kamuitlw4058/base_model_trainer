@@ -17,7 +17,8 @@ class SQL:
         return self
 
     def where(self, criteria):
-        self._criteria += [i.strip() for i in criteria if i.strip()]
+        if criteria is not None and len(criteria) > 0:
+            self._criteria += [i.strip() for i in criteria if i.strip()]
         return self
 
     def groupby(self, grp):

@@ -36,3 +36,5 @@ def is_weekend(dt):
 @udf(ArrayType(IntegerType()))
 def vector_indices(v):
     return [int(i) for i in v.indices]
+
+

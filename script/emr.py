@@ -6,20 +6,24 @@ __email__ = 'mark@zamplus.com'
 
 import json
 import boto3
-
+from datetime import datetime
 class EMR:
     def __init__(self):
         self._emr = boto3.client('emr')
 
-    def active_cluster_id(self, created_after, cluster_name='zampda_model_release'):
+
+    def active_cluster_id(self, created_after=datetime.strptime("1980-01-01","%Y-%m-%d"), cluster_name='zampda_model_release',states=['RUNNING', 'WAITING']):
         cluster_id = None
-        ret = self._emr.list_clusters(CreatedAfter=created_after, ClusterStates=['RUNNING', 'WAITING'])
-        print(ret)
+        ret = self._emr.list_clusters(CreatedAfter=created_after, ClusterStates=states)
         if len(ret['Clusters']) >0:
             for cluster in ret['Clusters']:
-                if cluster['Name'] == cluster_name:
+                if cluster_name is not None:
+                    if cluster['Name'] == cluster_name:
+                        cluster_id = cluster['Id']
+                        return cluster_id
+                else:
                     cluster_id = cluster['Id']
-            return cluster_id
+                    return cluster_id
         else:
             return None
 

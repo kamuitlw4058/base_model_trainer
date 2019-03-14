@@ -27,7 +27,7 @@ _training_log_dir = 'eventlog'
 
 class TFLRTrainer(Trainer):
 
-    def __init__(self, job_id,hdfs_dir,local_dir,learning_rate,l2):
+    def __init__(self, job_id,hdfs_dir,local_dir,learning_rate=0.001,l2=0.001):
         self._job_id = job_id
         self._hdfs_dir = hdfs_dir
         self._local_dir = local_dir
@@ -70,6 +70,21 @@ class TFLRTrainer(Trainer):
             if f:
                 f.close()
                 f = None
+    def get_features_weight(self,features_list):
+        lr = LogisticRegression(input_dim=self._input_dim)
+        lr.from_checkpoint(self._local_ckpt_dir)
+        weight = lr.get_tensor(self._local_ckpt_dir)
+        if len(weight) != len(features_list):
+            logger.info(f"wrong features length with weight length. Features: {len(features_list)}. Weight lenght:{len(weight)}")
+            return
+
+        d = {}
+        for i in range(0,len(features_list)):
+            d[features_list[i]] = float(list(weight[i])[0])
+
+        sorted_list = sorted(d.items(), key=lambda d: abs(d[1]), reverse=True)
+        self._feature_weight = sorted_list
+        return sorted_list
 
 
 

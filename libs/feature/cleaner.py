@@ -45,4 +45,13 @@ def clean_data(job_id, raw, spark):
 
     return raw
 
+def clean_nan_data(raw):
+
+    mask = {k.name: 'nan' for k in raw.schema if isinstance(k.dataType, StringType)}
+    raw = raw.na.fill(mask).replace(['', '\\n', '\\n\\n'], 'nan')
+
+    return raw
+
+
+
 
