@@ -17,6 +17,7 @@ from libs.model.predictor.predictor_factory import PredictorFactory
 from libs.feature_datasource.imp.ad_image import  AdImage
 from libs.env.spark import spark_session
 from  libs.pack import  pack_libs
+from pyspark.sql.dataframe import DataFrame
 pack_libs(overwrite=True)
 from pyspark.sql.functions import when
 
@@ -28,12 +29,14 @@ ds = AdImage("ad_image", start_date='2019-03-11',end_date='2019-03-15',account=2
 
 #df.select( when(df['age']==2, 3).otherwise(4).alias("age") ).collect()
 df = ds.produce_data()
+df = ds.get_dataframe()
 
 # df.select("index", f.posexplode("valuelist").alias("pos", "value"))\
 #     .where(f.col("index").cast("int") == f.col("pos"))\
 #     .select("index", "value")\
-#     .show()
-df = df.select("Bid_AdId", "AdImage_vector").where(len(df["AdImage_vector"]) ==0)
+#     .show()#df:DataFrame = df.select("Bid_AdId", "AdImage_vector").where(len(df["AdImage_vector"]) ==0)
 #df =df.filter('adimage_vector != []')
+print(df.dtypes)
+print(df.columns)
 df.show(100)
 #df = ds.get_dataframe()

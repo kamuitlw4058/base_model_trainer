@@ -16,8 +16,9 @@ from libs.model.trainer.trainer_factory import TrainerFactory
 from libs.model.predictor.predictor_factory import PredictorFactory
 from libs.feature.define import user_feature,context_feature,user_cap_feature,other_feature
 from libs.utilis.dict_utils import list_dict_duplicate_removal
-from libs.tracker import Tracker
+from libs.job.tracker import Tracker
 from sqlalchemy import create_engine
+from libs.common.utils.DatetimeUtils import get_human_timestamp
 
 
 def get_rtb_processing():
@@ -175,6 +176,8 @@ class Task():
 
     def run_task(self,task_dict,spark:SparkSession=None):
         task_name = task_dict['name']
+        task_start_time = datetime.now()
+
 
         if spark is None:
             task_spark = spark_session(task_name, 20)
@@ -351,10 +354,11 @@ class Task():
             trainer_params["name"] = task_name
             trainer_params["hdfs_dir"] = hdfsdir
             trainer_params["local_dir"] = localdir
+            model_name =trainer_conf['trainer']
 
-            trainer = TrainerFactory.get_trainer(trainer_conf['trainer'], **trainer_params)
+            trainer = TrainerFactory.get_trainer(model_name, **trainer_params)
             trainer.train(epoch, batch_size, worker_num, input_dim, data_names[0])
-            predictor = PredictorFactory.get_predictor(trainer_conf['trainer'], **trainer_params)
+            predictor = PredictorFactory.get_predictor(model_name, **trainer_params)
             pred_results = predictor.predict(worker_num, input_dim, data_names)
 
             features_vocabulary = get_features_vocabulary(vocabulary)
@@ -367,13 +371,26 @@ class Task():
             features_weight = trainer.get_features_weight(features_list)
             # print(f"features_weight：{features_weight}")
 
+
+            feature_weight_filename = os.path.join(localdir, f'{task_name}_{get_human_timestamp()}.weight')
+            trainer.save_features_weight(feature_weight_filename)
+
+
             ##TODO: 保存权重信息，
             ##TODO: 保存操作索引和操作方式。
             model_dict = {}
             model_dict['task_name'] = task_name
+            model_dict['model_name'] = model_name
+            model_dict['start_time'] = task_start_time
+            model_dict['end_time'] = datetime.now()
+            model_dict['args'] = str(task_args)
+            model_dict['train_evaluate'] = train_auc
+            model_dict['test_evaluate'] = test_auc
+            model_dict['features_base'] = features_base
+            model_dict['features_extend'] = features_extend
+            model_dict['features_weight'] = feature_weight_filename
 
-
-            self.commit(task_dict)
+            self.commit(model_dict)
 
 
     def commit(self, model_dict):
@@ -386,26 +403,17 @@ class Task():
         eg = create_engine('mysql+mysqldb://{user}:{password}@{host}/{database}'.format(**config))
         tracker = Tracker()
         tracker.job_name = model_dict.get("job_name")
+        tracker.job_name = model_dict.get("job_name")
         tracker.start_time = model_dict.get("start_time")
         tracker.end_time = model_dict.get("end_time")
-        tracker.start_date = model_dict.get("start_date")
-        tracker.end_date = model_dict.get("end_date")
-        tracker.account = model_dict.get("account")
-        tracker.vendor = model_dict.get("vendor")
-        tracker.train_auc = model_dict.get("train_auc")
-        tracker.test_auc = model_dict.get("test_auc")
-        tracker.new_features = model_dict.get("new_features")
-        tracker.test_start_date = model_dict.get("test_start_date")
-        tracker.test_end_date = model_dict.get("test_end_date")
-        tracker.tag = model_dict.get("tag")
-        tracker.os = model_dict.get("os")
-        tracker.audience = model_dict.get("audience")
-        tracker.status = model_dict.get("status")
-        tracker.new_features_args = str(model_dict.get("new_features_args"))
+        tracker.train_evaluate = model_dict.get("train_evaluate")
+        tracker.test_evaluate = model_dict.get("test_evaluate")
+        tracker.features_base = model_dict.get("features_base")
+        tracker.features_extend = model_dict.get("features_extend")
         tracker.new_features_weight = str(model_dict.get("features_weight"))
 
         df = tracker.get_df()
 
-        df.to_sql(name='train_opt_log', con=eg, if_exists='append', index=False)
+        df.to_sql(name='model_training_log', con=eg, if_exists='append', index=False)
 
 

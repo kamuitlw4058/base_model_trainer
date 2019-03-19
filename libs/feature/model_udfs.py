@@ -5,6 +5,7 @@ from keras.models import Model
 from keras import layers
 from keras.applications.vgg16 import preprocess_input
 from keras.preprocessing.image import load_img
+from pyspark.sql.types import ArrayType,DoubleType
 
 import  os
 def get_image_vector_model():
@@ -32,7 +33,7 @@ def get_image_vector_model():
 model = get_image_vector_model()
 
 
-@udf()
+@udf(returnType=ArrayType(DoubleType()))
 def image_vector(dt):
     image_path = "./image/" + str(dt) + ".jpg"
     vector = get_image_vector(image_path)

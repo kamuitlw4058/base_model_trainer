@@ -52,9 +52,11 @@ class Tracker:
 
     def set(self, key, value):
         self.__dict__[key] = value
-
-    def commit(self):
+    def to_sql(self):
         df = pd.Series(self.__dict__).to_frame().transpose()
-        eg = create_engine('mysql+mysqlconnector://', creator=_connect)
-        df.to_sql(name='model_opt_log', con=eg, if_exists='append', index=False)
-        logger.info('[%s] success commit to db', self.__dict__['job_id'])
+
+    # def commit(self):
+    #     df = pd.Series(self.__dict__).to_frame().transpose()
+    #     eg = create_engine('mysql+mysqlconnector://', creator=_connect)
+    #     df.to_sql(name='model_opt_log', con=eg, if_exists='append', index=False)
+    #     logger.info('[%s] success commit to db', self.__dict__['job_id'])

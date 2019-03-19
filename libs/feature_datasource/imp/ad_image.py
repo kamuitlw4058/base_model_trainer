@@ -31,8 +31,10 @@ class AdImage(ClickHouseSQLDataSource):
     def get_dataframe(self):
         output_path = self.get_image_vector_output_filepath(**self._args)
         print(f"read dataframe from:{output_path}")
-        ret_df = self._spark.read.parquet(output_path)
-        #ret_df.show(10)
+        ret_df:DataFrame = self._spark.read.parquet(output_path)
+        #print(ret_df.columns)
+        #rint(ret_df.dtypes)
+        ret_df.show(10)
         return ret_df
 
     @staticmethod
@@ -59,9 +61,9 @@ class AdImage(ClickHouseSQLDataSource):
         df = super().produce_data(overwrite=True,write_df =False)
 
 
-        df =df.withColumn("adimage", image_vector_udf("Bid_AdId"))
+        df:DataFrame =df.withColumn("adimage", image_vector_udf("Bid_AdId"))
 
         output_path = self.get_image_vector_output_filepath(**self._args)
-
+        #print(f"produce:{df.columns} + type:{df.dtypes}")
         df.write.parquet(path=output_path, mode='overwrite')
         return df
