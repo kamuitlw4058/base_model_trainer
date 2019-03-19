@@ -34,7 +34,7 @@ class ClickHouseSQLDataSource(DataSource):
 
 
     def get_output_filepath(self,**kwargs):
-        output_file = f"{self.get_type()}_{str(self._name).format(**kwargs)}{get_simple_str(**kwargs)}"
+        output_file = f"{self.get_type()}{get_simple_str(**kwargs)}"
         output_path = f"{hadoop_conf.HDFS_FEATURE_ROOT}/{str(self._name).format(**kwargs)}/{output_file}"
         return output_path
 
@@ -58,5 +58,6 @@ class ClickHouseSQLDataSource(DataSource):
         output_path = self.get_output_filepath(**self._args)
         reader = SparkClickhouseReader(self._spark, ZAMPLUS_RTB_LOCAL_JDBC_URL)
         sql = jdbc_sql(self._sql_template.format(**self._args))
-        return  clickhouse_produce_data(self._name,reader,sql,output_path,overwrite=overwrite,parallel=self._parallel,df_handler=None,write_df=write_df)
+        name = str(self._name).format(**self._args)
+        return  clickhouse_produce_data(name,reader,sql,output_path,overwrite=overwrite,parallel=self._parallel,df_handler=df_handler,write_df=write_df)
 

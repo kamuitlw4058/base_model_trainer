@@ -18,23 +18,22 @@ from libs.feature_datasource.imp.ad_image import  AdImage
 from libs.env.spark import spark_session
 from  libs.pack import  pack_libs
 pack_libs(overwrite=True)
+from pyspark.sql.functions import when
 
-
-sql = """SELECT distinct Bid_AdId
-
-FROM zampda.rtb_all prewhere EventDate >= toDate('2019-03-12') -1
-AND EventDate <= toDate('2019-03-12') -1
-AND TotalErrorCode=0
-WHERE Media_VendorId = 24
-    AND Bid_CompanyId = 12
-    AND notEmpty(Impression.Timestamp)
-"""
 
 
 spark = spark_session("testimage", 1)
 
-ds = AdImage("testimage", sql, spark=spark)
+ds = AdImage("ad_image", start_date='2019-03-11',end_date='2019-03-15',account=20,vendor=24, spark=spark)
 
+#df.select( when(df['age']==2, 3).otherwise(4).alias("age") ).collect()
 df = ds.produce_data()
-df.show(10)
+
+# df.select("index", f.posexplode("valuelist").alias("pos", "value"))\
+#     .where(f.col("index").cast("int") == f.col("pos"))\
+#     .select("index", "value")\
+#     .show()
+df = df.select("Bid_AdId", "AdImage_vector").where(len(df["AdImage_vector"]) ==0)
+#df =df.filter('adimage_vector != []')
+df.show(100)
 #df = ds.get_dataframe()

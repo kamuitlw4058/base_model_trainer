@@ -50,6 +50,8 @@ PYCHARM = False
 
 IMAGES_OUTPUT_BASE_DIR='cache/images/'
 
+FEATURES_NOT_FORMAT_LIST =['train_end_date','test_start_date','test_end_date','train_start_date']
+
 
 class JOB_ROOT_DIR:
     HDFS_ROOT = f'hdfs:///user/{os.environ.get("CTR_USER_NAME", "test")}/pctr_feature'

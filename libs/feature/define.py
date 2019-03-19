@@ -55,6 +55,10 @@ user_cap_feature = [
     # 'cap_TravelInd'
 ]
 
+other_feature = [
+    "AppCategory",
+    "segment",
+]
 
 def get_bidding_feature(account, vendor):
     return [
@@ -70,6 +74,7 @@ def get_feature_base_columns():
         'Media_VendorId',
         'Bid_CompanyId',
         'RequestId',
+        'toShortId(Bid_AdId) as Bid_AdId',
         'toMinute(cast(Time_Timestamp as DateTime) ) as Time_Minute',
         'toInt32(Time_Hour) * 60 + Time_Minute as Date_Minute',
         'floor(Date_Minute / 10) as Time_Minute_10',

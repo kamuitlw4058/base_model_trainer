@@ -16,7 +16,7 @@ SPARK_CONFIG = dict(
     SPARK_ARCHIVES=','.join([
         f'{PYTHON_ENV_CACHE}#python3',
         f'{HDFS_CODE_CACHE}#libs',
-        f'{HDFS_EXTNED_DATA_ROOT}#image',
-        f'{HDFS_EXTNED_DATA_ROOT}2#weights',
+        f'{HDFS_EXTNED_DATA_ROOT}/image.zip/#image',
+        f'{HDFS_EXTNED_DATA_ROOT}/weights.zip#weights',
     ]),
 )

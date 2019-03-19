@@ -87,9 +87,9 @@ class RTBDataSource(DataSource):
 
 
 
-        logger.info(" start date:" + self._start_date)
-        logging.info(" start date:" + self._start_date)
-        logging.info(" end date:" + self._end_date)
+        logger.info(" start date:" + str(self._start_date))
+        logging.info(" start date:" + str(self._start_date))
+        logging.info(" end date:" + str(self._end_date))
         for f in  self._filters:
             f_str = f.replace(' ','')
             if f_str.startswith("Bid_CompanyId"):

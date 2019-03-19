@@ -11,7 +11,7 @@ class DoubleProcessing(ProcessingBase):
     def convert_number(df,cols):
         for col in cols:
             df = df.withColumn(f"{col}_double", df[col].cast("double"))
-        return df,[f"{col}_int" for col in cols]
+        return df,[f"{col}_double" for col in cols]
 
     @staticmethod
     def get_type():

@@ -11,12 +11,17 @@ from conf.conf import RTB_ALL_TABLE_NAME, RTB_LOCAL_TABLE_NAME,CLICKHOUSE_URL_TE
 
 from datetime import datetime
 from pyspark.sql.functions import broadcast
+from libs.feature import udfs
+from libs.feature.define import user_cap_feature
+from pyspark.sql.dataframe import DataFrame
+
 
 _win_filter = ['TotalErrorCode = 0', 'Win_Timestamp > 0']
 
 _clk_filters = ['notEmpty(Click.Timestamp) = 1'] + _win_filter
 
 _imp_filters = ['notEmpty(Click.Timestamp) = 0'] + _win_filter
+
 
 
 _edu_mask = pd.DataFrame({
@@ -48,6 +53,26 @@ def clean_rtb_data(spark, raw):
 
     return raw
 
+
+
+def extend_rtb_data(spark, raw):
+    # append fields
+    from functools import reduce
+    ext_dict = 'ext_dict'
+    print("start handle extend data")
+    opts = [
+        ('weekday', udfs.weekday('ts')),
+        ('is_weekend', udfs.is_weekend('ts')),
+        (ext_dict, udfs.to_ext_dict('ext_key', 'ext_value')),
+    ]
+
+    raw = reduce(lambda d, args: d.withColumn(*args), opts, raw)
+
+    # extract cap feature & bidding feature from ext_dict
+    raw = reduce(lambda df, c: df.withColumn(c, df[ext_dict].getItem(c)), user_cap_feature, raw)
+    raw = clean_rtb_data(spark,raw)
+
+    return raw
 
 class RTBModelBaseDataSource(ClickHouseSQLDataSource):
 
@@ -227,8 +252,10 @@ class RTBModelBaseDataSource(ClickHouseSQLDataSource):
 
         return sql,RTBModelBaseDataSource._get_executor_num(estimated_samples)
 
-    def get_dataframe(self):
+    def get_dataframe(self) -> DataFrame:
         return super().get_dataframe()
+
+
 
 
     def produce_data(self, overwrite=False):
@@ -236,5 +263,6 @@ class RTBModelBaseDataSource(ClickHouseSQLDataSource):
         super().set_sql(sql)
         logger.info(
             f"[{self.name}] - kwargs:{self._kwargs}")
-        super().produce_data(overwrite=overwrite,df_handler=clean_rtb_data)
+        df = super().produce_data(overwrite=overwrite,df_handler=extend_rtb_data)
+
 

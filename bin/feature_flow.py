@@ -6,6 +6,7 @@ from datetime import datetime,timedelta
 from libs.feature_datasource.imp.clickhouse_sql import ClickHouseSQLDataSource
 from libs.feature_datasource.imp.rtb_model_base import RTBModelBaseDataSource
 from libs.feature_datasource.imp.clickhouse_daily_sql import  ClickHouseDailySQLDataSource
+from libs.feature_datasource.imp.ad_image import  AdImage
 from libs.job.job_parser import get_job_local_dir
 from libs.env.spark import spark_session
 from  libs.pack import  pack_libs
@@ -13,21 +14,30 @@ from libs.feature.feature_proessing import processing
 from libs.feature_dataoutput.hdfs_output import HdfsOutput
 from libs.model.trainer.trainer_factory import TrainerFactory
 from libs.model.predictor.predictor_factory import PredictorFactory
+from libs.feature.define import user_feature,context_feature,user_cap_feature,other_feature
+from libs.utilis.dict_utils import list_dict_duplicate_removal
 
 pack_libs(overwrite=True)
 
 
 g_task_dict ={
     'name':'test_job',
-    'task_args':{ 'interval':10,'account': 12, 'vendor': 24},
+    'task_args':{ 'interval':10,'account': 20, 'vendor': 24},
     'data_split':
         {
             'mode': 'date',
+            'args':{
+            'train_start_date':'2019-03-11',
+            'train_end_date':'2019-03-14',
+            'test_start_date': '2019-03-15',
+            'test_end_date': '2019-03-15'}
         },
     'features_base':
         {
             'type': 'RTBModelBaseDataSource',
             'name': "rtb",
+            'global_filter' :['Win_Price > 0', "Device_Os='android'", 'has(Segment.Id, 100012)=0 '],
+            'overwrite':True,
             'train_args':
                 {
                 },
@@ -36,16 +46,27 @@ g_task_dict ={
                 }
         },
     'features_extend':[
-        { "features_name":"av_ctr_day_interval{interval}",'args':{'interval':14}},
+        { "features_name":"av_ctr_day_interval{interval}",'args':{'interval':30},
+          'keys':["Id_Zid","Media_VendorId","Bid_CompanyId","EventDate"],'overwrite':False,
+          'processing':[
+              {'processing': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_imp'},
+              {'processing': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_clk'},
+              {'processing': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_ctr'},
+            ]},
+        {"features_name": "AdImage",
+         'keys': ["Bid_AdId"], 'overwrite': False,
+         'processing': [
+             {'processing': 'vector', 'col_name': 'adimage'},
+         ]},
     ],
 
     'features_processing':{
         'label':'is_clk',
         'cols':
         [
-            {'processing': 'int', 'col_name': 'Time_Hour'},
-            {'processing': 'onehot', 'col_name': 'Time_Hour'},
-            {'processing': 'onehot', 'col_name': 'Age'},
+            # {'processing': 'int', 'col_name': 'Time_Hour'},
+            # {'processing': 'onehot', 'col_name': 'Time_Hour'},
+            # {'processing': 'onehot', 'col_name': 'Age'},
         ]
     },
     'model':[
@@ -53,10 +74,22 @@ g_task_dict ={
          }
     ]
 
-
-
-
 }
+
+
+def get_rtb_processing():
+    cols = user_feature + context_feature + user_cap_feature + other_feature
+    cols_list =[]
+    for col in cols:
+        if col not in [
+            'AppCategory',
+            'segment'
+        ]:
+            cols_list.append({'processing': 'onehot', 'col_name': col})
+        else:
+            cols_list.append({'processing': 'multi_value', 'col_name': col})
+    return cols_list
+
 
 def get_date_str(date_args):
     if isinstance(date_args,int):
@@ -79,6 +112,7 @@ def data_split(mode,**kwargs)->dict:
 
 def get_data_split_args(data_split_option):
     data_split_args = data_split(data_split_option['mode'], **data_split_option.get('args', {}))
+    print(f"data split args:{data_split_args}")
     return data_split_args
 
 
@@ -208,18 +242,22 @@ def run_task(task_dict,spark:SparkSession=None):
                                           task_args['train_start_date'],
                                           task_args['train_end_date'],
                                           spark=task_spark,
+                                          global_filter = features_base.get('global_filter',[]),
                                           is_train=True,
                                           **apply_args)
         ds_dict = {}
         ds_dict['type'] = 'base'
         ds_dict['dataset'] = 'train'
         ds_dict['datasouce'] = train_ds
+        ds_dict['overwrite'] = features_base.get("overwrite",False)
+        ds_dict['processing'] = get_rtb_processing()
         datasource_list.append(ds_dict)
 
         apply_args = update_dict(task_args,features_base.get('test_args',{}))
         test_ds = RTBModelBaseDataSource(features_base['name'],
                                          task_args['test_start_date'],
                                          task_args['test_end_date'],
+                                         global_filter=features_base.get('global_filter', []),
                                          spark=task_spark,
                                          is_train=False,
                                          **apply_args)
@@ -227,6 +265,8 @@ def run_task(task_dict,spark:SparkSession=None):
         ds_dict['type'] = 'base'
         ds_dict['dataset'] = 'test'
         ds_dict['datasouce'] = test_ds
+        ds_dict['overwrite'] = features_base.get("overwrite", False)
+
         datasource_list.append(ds_dict)
 
 
@@ -239,14 +279,22 @@ def run_task(task_dict,spark:SparkSession=None):
         feature_name = feature.get("features_name","")
         if feature_name != "":
             feature_meta = get_features_meta_by_name( feature_name)
-            default_args= feature_meta.get("default_args",{})
+            if feature_meta is not None:
+                default_args= feature_meta.get("default_args",{})
+                features_class = feature_meta.get("feature_class", "")
+            else:
+                default_args ={}
+                if feature_name == "AdImage":
+                    features_class = "AdImage"
+                else:
+                    continue
+
             feature_args = feature.get("args",{})
             apply_args = {}
             apply_args.update(**default_args)
             apply_args.update(**task_args)
             apply_args.update(**feature_args)
 
-            features_class = feature_meta.get("feature_class", "")
             if features_class == "null" or features_class == "":
                 continue
 
@@ -259,11 +307,15 @@ def run_task(task_dict,spark:SparkSession=None):
                 # ds = RTBModelBaseDataSource(datasource['name'], datasource['job_dict'], datasource['job_dict'], spark=spark,
                 #                             **kwargs)
             elif features_class == 'ClickHouseDailySQLDataSource':
+                #print(apply_args)
+                #print(feature_meta['feature_context'])
                 ds = ClickHouseDailySQLDataSource(feature_name, apply_args['train_start_date'],
                                                   apply_args['test_end_date'], sql_template=feature_meta['feature_context'],
                                                   batch_cond=feature_meta.get('batch_cond',None), spark=task_spark, **apply_args)
             elif features_class == 'ClickHouseSQLDataSource':
                 ds = ClickHouseSQLDataSource(feature_name, sql_template=feature_meta['feature_context'], spark=task_spark, **apply_args)
+            elif features_class == 'AdImage':
+                ds = AdImage(feature_name,apply_args['train_start_date'],apply_args['test_end_date'],spark=task_spark,**apply_args)
             else:
                 ds = None
 
@@ -271,23 +323,35 @@ def run_task(task_dict,spark:SparkSession=None):
                 ds_dict = {}
                 ds_dict['type'] = 'extend'
                 ds_dict['datasouce'] = ds
+                ds_dict['keys'] = feature.get("keys",[])
+                ds_dict['overwrite'] = feature.get("overwrite",False)
+                processing_list = feature.get("processing",[])
+                for p in processing_list:
+                    p['col_name'] = p['col_name'].format(**apply_args)
+                ds_dict['processing'] = processing_list
                 datasource_list.append(ds_dict)
 
-    print(datasource_list)
+    #print(datasource_list)
 
     for ds_item in datasource_list:
-        ds_item['datasouce'].produce_data()
+        ds_item['datasouce'].produce_data(overwrite=ds_item['overwrite'])
 
     train_df =None
     test_df =None
 
+
     for ds_item in datasource_list:
         ds = ds_item['datasouce']
-        df = ds.get_dataframe()
+        processing_list = ds_item.get('processing',[])
+        task_dict['features_processing']['cols'] += processing_list
+        #df = ds.get_dataframe()
         if ds_item['type'] == 'base' and ds_item['dataset'] == 'train':
+            df = ds.get_dataframe()
             train_df = df
             task_dict['base_size'] = task_dict.get('base_size',0) + df.count()
+
         elif ds_item['type'] == 'base' and ds_item['dataset'] == 'test':
+            df = ds.get_dataframe()
             test_df = df
             task_dict['base_size'] = task_dict.get('base_size',0) + df.count()
 
@@ -295,7 +359,32 @@ def run_task(task_dict,spark:SparkSession=None):
         print("Base Data is None!!!!")
         return
 
+
+    # @staticmethod
+    # def unionRaw(rawDf,featureDf,keys,number_features=None):
+    #     raw = rawDf.alias("raw")
+    #     feature = featureDf.alias("feature")
+    #     joinedDf = raw.join(feature,keys,"left")
+    #     if number_features:
+    #         for f in number_features:
+    #             logger.info("int not zero....")
+    #             joinedDf = joinedDf.withColumn(f, udfs.int_default_zero(f))
+    #     return joinedDf
+
+    for ds_item in datasource_list:
+        ds = ds_item['datasouce']
+        if ds_item['type'] != 'base':
+            #train_df = train_df.alias("train_df")
+            #feature = featureDf.alias("feature")
+            df = ds.get_dataframe()
+            train_df = train_df.join(df,ds_item['keys'],'left')
+            test_df = test_df.join(df,ds_item['keys'],'left')
+
+
+
     features_processing = task_dict['features_processing']
+    features_processing['cols'] = list_dict_duplicate_removal(features_processing['cols'])
+    print(f"features_processing:{features_processing}")
     train_processed_df, test_processed, vocabulary, feature_dim = processing(train_df, test_df, features_processing)
     task_dict['feature_dim'] = feature_dim
     task_dict['features_vocabulary'] = vocabulary
@@ -326,18 +415,15 @@ def run_task(task_dict,spark:SparkSession=None):
         features_opts = get_features_opts(vocabulary)
         features_list = get_feature_list(features_vocabulary)
 
-        print(f"features_vocabulary：{vocabulary}")
+        #print(f"features_vocabulary：{vocabulary}")
         train_auc, test_auc = predictor.evaluate_auc(pred_results)
         print(f'[{task_name}] train auc {train_auc:.3f}, test auc {test_auc:.3f}', task_name, train_auc, test_auc)
         features_weight = trainer.get_features_weight(features_list)
-        print(f"features_weight：{features_weight}")
+        #print(f"features_weight：{features_weight}")
 
         ##TODO: 保存权重信息，
         ##TODO: 保存操作索引和操作方式。
 
-
-
-
-
-
+#g_task_dict['features_processing']['cols'] = get_rtb_processing()
+#print(g_task_dict['features_processing']['cols'])
 run_task(g_task_dict)

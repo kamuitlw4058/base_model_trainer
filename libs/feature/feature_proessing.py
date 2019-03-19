@@ -13,15 +13,16 @@ from libs.feature.processing.onehot import OneHotProcessing
 from libs.feature.processing.number import IntProcessing
 from libs.feature.processing.number import DoubleProcessing
 from libs.feature.processing.multi_value_category import MultiValueCategoryProcessing
+from libs.feature.processing.vector import VectorProcessing
 from libs.feature.udfs import vector_indices
 
 processing_dict ={
     IntProcessing.get_name(): IntProcessing,
     DoubleProcessing.get_name(): DoubleProcessing,
     OneHotProcessing.get_name():OneHotProcessing,
-    MultiValueCategoryProcessing.get_name():MultiValueCategoryProcessing
+    MultiValueCategoryProcessing.get_name():MultiValueCategoryProcessing,
+    VectorProcessing.get_name(): VectorProcessing
 }
-
 
 
 conf_processing_col_name ="col_name"
@@ -54,7 +55,8 @@ def _extract_vocabulary(stages,stages_output_dict,dataframe_features):
 
 def _dump_vocabulary(vocabulary):
     for feature in vocabulary:
-        logger.info(f"feature:{feature['name']} len:{len(feature['value'])} values:{feature['value']}")
+        #logger.info(f"feature:{feature['name']} len:{len(feature['value'])} values:{feature['value']}")
+        logger.info(f"feature:{feature['name']} len:{len(feature['value'])}")
 
 def feature_dim(vocabulary):
     dim = 0
@@ -120,7 +122,7 @@ def processing(train, test, processing_conf):
 
     logger.info(f'processing_col_dict: {processing_col_dict}')
 
-    train_count, test_count = train.count(), test.count()
+    #train_count, test_count = train.count(), test.count()
 
     stages_output_dict ={}
     stages = []
@@ -153,8 +155,8 @@ def processing(train, test, processing_conf):
     assembler = VectorAssembler(inputCols=total_output_cols, outputCol='feature')
     stages.append(assembler)
 
-    logger.info(f"stages_output_dict:{stages_output_dict}")
-    logger.info(f"stages:{stages}")
+    #logger.info(f"stages_output_dict:{stages_output_dict}")
+    #logger.info(f"stages:{stages}")
     logger.info(f"total_output_cols:{total_output_cols}")
 
     pipeline = Pipeline(stages=stages)
@@ -164,7 +166,6 @@ def processing(train, test, processing_conf):
     vocabulary = _extract_vocabulary(model.stages,stages_output_dict,dataframe_cols)
     #logger.info(f"vocabulary:{vocabulary}")
     _dump_vocabulary(vocabulary)
-   # self._extract_vocabulary()
 
     train_tranfrom =model.transform(train)
     train_tranfrom.show(10,truncate=False)
@@ -183,7 +184,5 @@ def processing(train, test, processing_conf):
     train_res = get_result(train_tranfrom, processing_conf["label"])
     test_res = get_result(test_tranfrom, processing_conf["label"])
 
-
-    #features_vocabulary =get_features_vocabulary(vocabulary)
 
     return train_res, test_res,vocabulary,feature_dim(vocabulary)

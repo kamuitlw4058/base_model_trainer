@@ -3,6 +3,8 @@ from pyspark.sql.functions import *
 from keras.applications.vgg16 import VGG16
 from keras.models import Model
 from keras import layers
+from keras.applications.vgg16 import preprocess_input
+from keras.preprocessing.image import load_img
 
 import  os
 def get_image_vector_model():
@@ -32,7 +34,6 @@ model = get_image_vector_model()
 
 @udf()
 def image_vector(dt):
-    #print(dt)
     image_path = "./image/" + str(dt) + ".jpg"
     vector = get_image_vector(image_path)
     return vector
@@ -40,9 +41,9 @@ def image_vector(dt):
 
 def get_image_vector(image_path):
 
-    from keras.applications.vgg16 import preprocess_input
 
-    from keras.preprocessing.image import load_img
+    if not os.path.exists(image_path):
+        return None
 
     # load an image from file
     image = load_img(image_path, target_size=(224, 224))

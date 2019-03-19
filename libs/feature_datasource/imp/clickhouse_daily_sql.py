@@ -1,5 +1,6 @@
 from libs.feature_datasource.datasource import DataSource
 from conf.clickhouse import hosts
+from conf.conf import FEATURES_NOT_FORMAT_LIST
 from libs.env.spark import spark_session,SparkClickhouseReader
 import random
 import conf.hadoop as hadoop_conf
@@ -93,7 +94,8 @@ class ClickHouseDailySQLDataSource(DataSource):
         for s,d,cond in sqlList:
             kwargs[CLICKHOUSE_DAILY_SQL_DATE_COL] =  d.strftime("%Y-%m-%d")
             kwargs.update(cond)
-            output_file = f"{self.get_type()}_{str(self._name).format(**kwargs)}{get_simple_str(**kwargs)}"
+            output_file = f"{self.get_type()}{get_simple_str_by_template([sql_template],not_format=FEATURES_NOT_FORMAT_LIST, **kwargs)}"
+            #output_file = f"{self.get_type()}_{str(self._name).format(**kwargs)}{get_simple_str(**kwargs)}"
             output_path = hadoop_conf.HDFS_FEATURE_ROOT + '/' + str(self._name).format(**kwargs) + '/' + output_file
             clickhouse_produce_data(self._name,reader,s,output_path,overwrite=overwrite)
 
@@ -106,7 +108,7 @@ class ClickHouseDailySQLDataSource(DataSource):
             kwargs[CLICKHOUSE_DAILY_SQL_DATE_COL] = d.strftime("%Y-%m-%d")
             kwargs.update(cond)
 
-            output_file = f"{self.get_type()}{get_simple_str_by_template([self._name,sql_template],**kwargs)}"
+            output_file = f"{self.get_type()}{get_simple_str_by_template([sql_template],not_format=FEATURES_NOT_FORMAT_LIST, **kwargs)}"
             #output_file = f"{self.get_type()}_{str(self._name).format(**kwargs)}{get_simple_str(**kwargs)}"
             output_path = hadoop_conf.HDFS_FEATURE_ROOT + '/' + str(self._name).format(**kwargs) + '/' + output_file
 
