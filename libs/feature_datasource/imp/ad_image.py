@@ -2,10 +2,17 @@ import logging
 logger = logging.getLogger(__name__)
 from libs.feature_datasource.imp.clickhouse_sql import  ClickHouseSQLDataSource
 from pyspark.sql.dataframe import DataFrame
-from libs.common.database.reader import get_mysql_reader
 from libs.feature.model_udfs import image_vector as image_vector_udf
 from conf import hadoop as hadoop_conf
 from libs.utilis.dict_utils import get_simple_str
+
+from conf.conf import ZAMPLUS_ZAMPDA_DATABASE,ZAMPLUS_ZAMPDA_LOCAL_DATABASE,ZAMPLUS_RTB_ALL_JDBC_URL,ZAMPLUS_RTB_LOCAL_JDBC_URL,CLICKHOUSE_DAILY_SQL_DATE_COL
+from libs.env.hdfs import hdfs
+from libs.utilis.sql_utils import jdbc_sql
+import logging
+logger = logging.getLogger(__name__)
+
+
 
 adid_sql = """SELECT distinct toShortId(Bid_AdId) as Bid_AdId
 FROM zampda.rtb_all prewhere EventDate >= toDate('{start_date}') 
@@ -57,13 +64,26 @@ class AdImage(ClickHouseSQLDataSource):
         output_path = f"{hadoop_conf.HDFS_FEATURE_ROOT}/{str(self._name).format(**kwargs)}/{output_file}"
         return output_path
 
-    def produce_data(self,overwrite=False,df_handler=None,write_df=True)->DataFrame:
-        df = super().produce_data(overwrite=True,write_df =False)
 
-
-        df:DataFrame =df.withColumn("adimage", image_vector_udf("Bid_AdId"))
-
-        output_path = self.get_image_vector_output_filepath(**self._args)
-        #print(f"produce:{df.columns} + type:{df.dtypes}")
+    def _produce_data(self,output_path):
+        df = super().produce_data(overwrite=True, write_df=False)
+        df: DataFrame = df.withColumn("adimage", image_vector_udf("Bid_AdId"))
         df.write.parquet(path=output_path, mode='overwrite')
+        return df
+
+    def produce_data(self,overwrite=False,df_handler=None,write_df=True)->DataFrame:
+        df = None
+        output_path = self.get_image_vector_output_filepath(**self._args)
+        if not hdfs.exists(output_path):
+            logger.info("file [{path}] is not exist! we process data from clickhouse."
+                        .format(path=output_path))
+            df = self._produce_data(output_path)
+
+        else:
+            if overwrite:
+                logger.info("file [{path}] is  exist! we overwrite process data from clickhouse."
+                            .format(path=output_path))
+                df = self._produce_data(output_path)
+
+
         return df

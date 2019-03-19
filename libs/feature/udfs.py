@@ -1,6 +1,6 @@
 from pyspark.sql.types import *
 from pyspark.sql.functions import *
-
+from pyspark.ml.linalg import Vectors, VectorUDT
 
 @udf(MapType(StringType(), StringType()))
 def to_ext_dict(ext_key, ext_val):
@@ -37,4 +37,13 @@ def is_weekend(dt):
 def vector_indices(v):
     return [int(i) for i in v.indices]
 
+@udf(returnType=VectorUDT())
+def to_vector(dt):
+    return Vectors.dense(dt)
+
+@udf(returnType=IntegerType())
+def to_array_size(dt):
+    if dt is not None:
+        return len(dt)
+    return 0
 

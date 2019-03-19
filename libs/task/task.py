@@ -166,7 +166,7 @@ def get_features_vocabulary(vocabulary: list) -> list:
 
 
 class Task():
-    def __init__(self,task_dict,spark):
+    def __init__(self,task_dict,spark:SparkSession=None):
         self.task_dict = task_dict
         self.spark = spark
 

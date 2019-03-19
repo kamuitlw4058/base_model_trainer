@@ -19,9 +19,10 @@ from libs.feature.udfs import vector_indices
 processing_dict ={
     IntProcessing.get_name(): IntProcessing,
     DoubleProcessing.get_name(): DoubleProcessing,
+    VectorProcessing.get_name(): VectorProcessing,
     OneHotProcessing.get_name():OneHotProcessing,
     MultiValueCategoryProcessing.get_name():MultiValueCategoryProcessing,
-    VectorProcessing.get_name(): VectorProcessing
+
 }
 
 
@@ -29,7 +30,7 @@ conf_processing_col_name ="col_name"
 
 
 
-def _extract_vocabulary(stages,stages_output_dict,dataframe_features):
+def _extract_vocabulary(stages,stages_output_dict,dataframe_features,vector_cols):
     def _build_dict(name, values,opt):
         return {
             'name': name,
@@ -41,6 +42,12 @@ def _extract_vocabulary(stages,stages_output_dict,dataframe_features):
 
     for col in dataframe_features:
         vocabulary_list.append(_build_dict(col, [col],'orig'))
+
+    for vector_cols in vector_cols:
+        vector_cols_list = []
+        for i in range(vector_cols['size']):
+            vector_cols_list.append(i)
+        vocabulary_list.append(_build_dict(f"{vector_cols['col']}", vector_cols_list, 'orig'))
 
     for stage in stages:
         #print(f"stage:{stage},type:{type(stage)}")
@@ -129,6 +136,7 @@ def processing(train, test, processing_conf):
     total_output_cols = []
 
     dataframe_cols = []
+    vector_cols =[]
     for k, v in processing_col_dict.items():
         if len(v) > 0:
             processing = processing_dict.get(k)
@@ -147,6 +155,12 @@ def processing(train, test, processing_conf):
                 test,cols =processor(test,v)
                 output_cols = cols
                 dataframe_cols += cols
+            elif processing.get_type() == "vector":
+                processor = processing.get_processor(v)
+                train,cols,size = processor(train,v)
+                test,cols,size =processor(test,v)
+                output_cols = cols
+                vector_cols += size
 
 
             total_output_cols += output_cols
@@ -163,12 +177,12 @@ def processing(train, test, processing_conf):
 
     model = pipeline.fit(train)
 
-    vocabulary = _extract_vocabulary(model.stages,stages_output_dict,dataframe_cols)
+    vocabulary = _extract_vocabulary(model.stages,stages_output_dict,dataframe_cols,vector_cols)
     #logger.info(f"vocabulary:{vocabulary}")
     _dump_vocabulary(vocabulary)
 
     train_tranfrom =model.transform(train)
-    train_tranfrom.show(10,truncate=False)
+    train_tranfrom.show(10)
 
     # 这边使用训练集的转换模型去转换测试集。
     test_tranfrom = model.transform(test)

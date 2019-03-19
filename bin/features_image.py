@@ -13,24 +13,28 @@ from libs.feature.feature_proessing import processing
 from libs.feature_dataoutput.hdfs_output import HdfsOutput
 from libs.model.trainer.trainer_factory import TrainerFactory
 from libs.model.predictor.predictor_factory import PredictorFactory
-
+from libs.feature.udfs import to_vector,to_array_size
 from libs.feature_datasource.imp.ad_image import  AdImage
 from libs.env.spark import spark_session
 from  libs.pack import  pack_libs
 from pyspark.sql.dataframe import DataFrame
 pack_libs(overwrite=True)
 from pyspark.sql.functions import when
-
+from pyspark.ml.linalg import Vectors, VectorUDT
 
 
 spark = spark_session("testimage", 1)
 
 ds = AdImage("ad_image", start_date='2019-03-11',end_date='2019-03-15',account=20,vendor=24, spark=spark)
 
-#df.select( when(df['age']==2, 3).otherwise(4).alias("age") ).collect()
 df = ds.produce_data()
 df = ds.get_dataframe()
+df = df.withColumn(f"adimage_vec", to_vector('adimage'))
+df:DataFrame = df.withColumn(f"adimage_size", to_array_size('adimage'))
 
+from pyspark.sql import functions as F
+print(df.agg(F.max(df.adimage_size)).collect())
+print(df.agg(F.max(df.adimage_size).alias("adimage_size_max")).collect()[0]['adimage_size_max'])
 # df.select("index", f.posexplode("valuelist").alias("pos", "value"))\
 #     .where(f.col("index").cast("int") == f.col("pos"))\
 #     .select("index", "value")\
@@ -39,4 +43,3 @@ df = ds.get_dataframe()
 print(df.dtypes)
 print(df.columns)
 df.show(100)
-#df = ds.get_dataframe()
