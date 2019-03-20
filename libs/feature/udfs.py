@@ -37,6 +37,11 @@ def is_weekend(dt):
 def vector_indices(v):
     return [int(i) for i in v.indices]
 
+@udf(ArrayType(DoubleType()))
+def vector_values(v):
+    return [float(i) for i in v.values]
+
+
 @udf(returnType=VectorUDT())
 def to_vector(dt):
     return Vectors.dense(dt)

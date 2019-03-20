@@ -77,14 +77,15 @@ def feature_dim(vocabulary):
 def get_result(df,lable_col):
 
     df = df.withColumn('feature_indices', vector_indices('feature'))
-
-    schema = [lable_col, 'feature_indices']
+    df = df.withColumn('feature_values', vector_indices('feature'))
+    schema = [lable_col, 'feature_indices','feature_values']
     # others = [c for c in df.columns if c not in schema]
     res = (df
            # .select(['is_clk', 'feature'])
            .orderBy(functions.rand())
            .select(schema)
            )
+   # res.show(10)
 
     return res
 

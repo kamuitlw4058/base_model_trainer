@@ -403,7 +403,7 @@ class Task():
         eg = create_engine('mysql+mysqldb://{user}:{password}@{host}/{database}'.format(**config))
         tracker = Tracker()
         tracker.job_name = model_dict.get("job_name")
-        tracker.job_name = model_dict.get("job_name")
+        tracker.model_name = model_dict.get("model_name")
         tracker.start_time = model_dict.get("start_time")
         tracker.end_time = model_dict.get("end_time")
         tracker.train_evaluate = model_dict.get("train_evaluate")
