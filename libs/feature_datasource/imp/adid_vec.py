@@ -49,7 +49,7 @@ class AdidVecDataSource(DataSource):
                            delimiter='\t',
                            schema_names=['Id_Zid', 'imp', 'clk', 'imp_adid', 'clk_adid'])
 
-        word_vec_df = read_csv("hdfs:///user/model/extend_data/word_vec.txt", spark=self._spark, has_header=False,
+        word_vec_df = read_csv("hdfs:///user/model/extend_data/ad_vec.txt", spark=self._spark, has_header=False,
                                delimiter='\t',
                                schema_names=['adid', 'adid_vec'])
 
@@ -62,7 +62,7 @@ class AdidVecDataSource(DataSource):
         for row in word_vec_list:
             word_vec_dict[row['adid']] = row['adid_arr']
 
-        apply_udf = list_dict_index_udf(word_vec_dict, [0.0 for i in range(32)],
+        apply_udf = list_dict_index_udf(word_vec_dict, [0.0 for i in range(16)],
                                         output_type=ArrayType(DoubleType())).get_udf()
         user_df = user_df.withColumn("adid_vec_list", apply_udf('imp_adid'))
         apply_udf = list_avg_udf().get_udf()

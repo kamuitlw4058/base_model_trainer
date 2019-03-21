@@ -4,6 +4,24 @@ from pyspark.ml.linalg import Vectors, VectorUDT
 
 
 
+class vector_dense_udf:
+    def __init__(self,size,default_value=0.0,output_type=VectorUDT(),**kwargs):
+        self.size=size
+        self.default_value = default_value
+        self.output_type = output_type
+
+
+    def get_udf(self):
+        @udf(self.output_type)
+        def warpped_udf(dt):
+            if dt is None:
+                return Vectors.dense([self.default_value for i in range(self.size)])
+            else:
+                return Vectors.dense(dt)
+
+        return warpped_udf
+
+
 class list_dict_index_udf:
     def __init__(self,dict,default_value,output_type=StringType(),**kwargs):
         self.dict = dict

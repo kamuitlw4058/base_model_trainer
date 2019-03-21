@@ -8,5 +8,5 @@ class HdfsOutput(DataOutput):
     @staticmethod
     def write(df,path):
         df.write.parquet(path=path, mode='overwrite')
-        print(df.columns)
+        #print(df.columns)
         return

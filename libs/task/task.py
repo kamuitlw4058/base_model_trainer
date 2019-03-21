@@ -210,6 +210,7 @@ class Task():
             ds_dict['datasouce'] = train_ds
             ds_dict['overwrite'] = features_base.get("overwrite", False)
             ds_dict['processing'] = get_rtb_processing()
+            ds_dict['join_type'] = features_base.get('join_type', 'left')
             datasource_list.append(ds_dict)
 
             apply_args = update_dict(task_args, features_base.get('test_args', {}))
@@ -225,6 +226,7 @@ class Task():
             ds_dict['dataset'] = 'test'
             ds_dict['datasouce'] = test_ds
             ds_dict['overwrite'] = features_base.get("overwrite", False)
+            ds_dict['join_type'] = features_base.get('join_type', 'left')
 
             datasource_list.append(ds_dict)
 
@@ -288,6 +290,7 @@ class Task():
                     ds_dict['datasouce'] = ds
                     ds_dict['keys'] = feature.get("keys", [])
                     ds_dict['overwrite'] = feature.get("overwrite", False)
+                    ds_dict['join_type'] = feature.get('join_type','left')
                     processing_list = feature.get("processing", [])
                     for p in processing_list:
                         p['col_name'] = p['col_name'].format(**apply_args)
@@ -340,8 +343,8 @@ class Task():
                 print(f"{ds_item['name']} train_valid_count:{train_valid_count} test_count:{test_valid_count}")
                 print(f"{ds_item['name']} train_valid_precent:{train_valid_count/ task_dict['train_count']} test_count:{test_valid_count/task_dict['test_count']}")
 
-                train_df = train_df.join(df, ds_item['keys'], 'left')
-                test_df = test_df.join(df, ds_item['keys'], 'left')
+                train_df = train_df.join(df, ds_item['keys'], ds_item['join_type'])
+                test_df = test_df.join(df, ds_item['keys'], ds_item['join_type'])
 
         features_processing = task_dict['features_processing']
         print(f"features_processing:{features_processing}")
