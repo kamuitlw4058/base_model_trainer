@@ -40,6 +40,11 @@ g_task_dict ={
         #  'processing': [
         #      {'processing': 'vector', 'col_name': 'adimage'},
         #  ]},
+        {"features_name": "AdidVecDataSource",
+         'keys': ["Id_Zid"], 'overwrite': False,
+         'processing': [
+             {'processing': 'vector', 'col_name': 'adid_vec_avg'},
+         ]},
     ],
 
     'features_processing':{

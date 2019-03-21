@@ -318,7 +318,7 @@ class Task():
 
         task_dict['train_count'] = train_df.count()
         task_dict['test_count'] = test_df.count()
-        print(f"train_count:{train_count} test_count:{test_count}")
+        print(f"train_count:{ task_dict['train_count']} test_count:{task_dict['test_count']}")
 
         for ds_item in datasource_list:
             ds = ds_item['datasouce']
@@ -330,14 +330,17 @@ class Task():
                 test_valid_count = train_df.join(df, ds_item['keys']).count()
                 task_dict[f"{ds_item['name']}_train_valid_count" ] = train_valid_count
                 task_dict[f"{ds_item['name']}_test_valid_count"] = test_valid_count
+                task_dict[f"{ds_item['name']}_train_valid_precent" ] = round(train_valid_count/ task_dict['train_count'],3)
+                task_dict[f"{ds_item['name']}_test_valid_count"] = round(test_valid_count/task_dict['test_count'])
                 print(f"{ds_item['name']} train_valid_count:{train_valid_count} test_count:{test_valid_count}")
+                print(f"{ds_item['name']} train_valid_precent:{train_valid_count/ task_dict['train_count']} test_count:{test_valid_count/task_dict['test_count']}")
 
                 train_df = train_df.join(df, ds_item['keys'], 'left')
                 test_df = test_df.join(df, ds_item['keys'], 'left')
 
         features_processing = task_dict['features_processing']
-        features_processing['cols'] = list_dict_duplicate_removal(features_processing['cols'])
         print(f"features_processing:{features_processing}")
+        features_processing['cols'] = list_dict_duplicate_removal(features_processing['cols'])
         train_processed_df, test_processed, vocabulary, feature_dim = processing(train_df, test_df, features_processing)
         task_dict['feature_dim'] = feature_dim
         task_dict['features_vocabulary'] = vocabulary
@@ -395,8 +398,8 @@ class Task():
             model_dict['test_rows'] = task_dict['test_count']
 
 
-            task_dict_str = json.dumps(task_dict,indent=4)
-            print(task_dict_str)
+            #task_dict_str = json.dumps(task_dict,indent=4)
+            #print(task_dict_str)
 
             self.commit(model_dict)
 
@@ -419,6 +422,9 @@ class Task():
         tracker.features_base = str(model_dict.get("features_base"))
         tracker.features_extend = str(model_dict.get("features_extend"))
         tracker.features_weight = str(model_dict.get("features_weight"))
+        tracker.features_dim = model_dict.get('features_dim', 0)
+        tracker.train_rows = model_dict.get('train_count',0)
+        tracker.test_rows = model_dict.get('test_count',0)
 
         df = tracker.get_df()
 

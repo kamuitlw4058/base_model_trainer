@@ -60,7 +60,7 @@ class AdidVecDataSource(DataSource):
 
         word_vec_df = read_csv( "hdfs:///user/model/extend_data/word_vec.txt", spark=self._spark, has_header=False,
                            delimiter='\t',
-                           schema_names=['adid', 'adid_vec'])
+                           schema_names=['Id_Zid', 'adid_vec'])
 
         apply_udf = split_to_list_udf(" ", DoubleType()).get_udf()
         word_vec_df = word_vec_df.withColumn("adid_arr", apply_udf("adid_vec"))
@@ -76,7 +76,7 @@ class AdidVecDataSource(DataSource):
         user_df = user_df.withColumn("adid_vec_list", apply_udf('imp_adid'))
         apply_udf = list_avg_udf().get_udf()
         user_df = user_df.withColumn("adid_vec_avg", apply_udf('adid_vec_list'))
-        df =user_df.select(["zid", "adid_vec_avg"])
+        df =user_df.select(["Id_Zid", "adid_vec_avg"])
         df.show(10)
 
         return df
