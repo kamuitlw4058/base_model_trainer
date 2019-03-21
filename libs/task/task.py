@@ -8,6 +8,7 @@ from libs.feature_datasource.imp.clickhouse_sql import ClickHouseSQLDataSource
 from libs.feature_datasource.imp.rtb_model_base import RTBModelBaseDataSource
 from libs.feature_datasource.imp.clickhouse_daily_sql import  ClickHouseDailySQLDataSource
 from libs.feature_datasource.imp.ad_image import  AdImage
+from libs.feature_datasource.imp.adid_vec import  AdidVecDataSource
 from libs.job.job_parser import get_job_local_dir
 from libs.env.spark import spark_session
 from  libs.pack import  pack_libs
@@ -193,6 +194,7 @@ class Task():
         datasource_list = []
 
         features_base = task_dict['features_base']
+        features_base_name =features_base['name']
         if features_base['type'] == 'RTBModelBaseDataSource':
             apply_args = update_dict(task_args, features_base.get('train_args', {}))
             train_ds = RTBModelBaseDataSource(features_base['name'],
@@ -227,9 +229,10 @@ class Task():
             datasource_list.append(ds_dict)
 
         features_extend = task_dict.get("features_extend", [])
-
+        features_extend_name_list =[]
         for feature in features_extend:
             feature_name = feature.get("features_name", "")
+            features_extend_name_list.append(feature_name)
             if feature_name != "":
                 feature_meta = get_features_meta_by_name(feature_name)
                 if feature_meta is not None:
@@ -237,8 +240,8 @@ class Task():
                     features_class = feature_meta.get("feature_class", "")
                 else:
                     default_args = {}
-                    if feature_name == "AdImage":
-                        features_class = "AdImage"
+                    if feature_name == "AdImage" or feature_name == "AdidVecDataSource":
+                        features_class = feature_name
                     else:
                         continue
 
@@ -273,6 +276,8 @@ class Task():
                 elif features_class == 'AdImage':
                     ds = AdImage(feature_name, apply_args['train_start_date'], apply_args['test_end_date'],
                                  spark=task_spark, **apply_args)
+                elif features_class == "AdidVecDataSource":
+                    ds = AdidVecDataSource(feature_name,spark=task_spark)
                 else:
                     ds = None
 
@@ -327,7 +332,7 @@ class Task():
                 # feature = featureDf.alias("feature")
                 df = ds.get_dataframe()
                 train_valid_count  = train_df.join(df, ds_item['keys']).count()
-                test_valid_count = train_df.join(df, ds_item['keys']).count()
+                test_valid_count = test_df.join(df, ds_item['keys']).count()
                 task_dict[f"{ds_item['name']}_train_valid_count" ] = train_valid_count
                 task_dict[f"{ds_item['name']}_test_valid_count"] = test_valid_count
                 task_dict[f"{ds_item['name']}_train_valid_precent" ] = round(train_valid_count/ task_dict['train_count'],3)
@@ -390,8 +395,8 @@ class Task():
             model_dict['args'] = str(task_args)
             model_dict['train_evaluate'] = train_auc
             model_dict['test_evaluate'] = test_auc
-            model_dict['features_base'] = features_base
-            model_dict['features_extend'] = features_extend
+            model_dict['features_base'] = features_base_name
+            model_dict['features_extend'] = features_extend_name_list
             model_dict['features_weight'] = feature_weight_filename
             model_dict['features_dim'] = input_dim
             model_dict['train_rows'] = task_dict['train_count']
@@ -414,6 +419,7 @@ class Task():
         eg = create_engine('mysql+mysqldb://{user}:{password}@{host}/{database}'.format(**config))
         tracker = Tracker()
         tracker.job_name = model_dict.get("task_name")
+        tracker.job_args = model_dict.get("args")
         tracker.model_name = model_dict.get("model_name")
         tracker.start_time = model_dict.get("start_time")
         tracker.end_time = model_dict.get("end_time")
@@ -423,8 +429,8 @@ class Task():
         tracker.features_extend = str(model_dict.get("features_extend"))
         tracker.features_weight = str(model_dict.get("features_weight"))
         tracker.features_dim = model_dict.get('features_dim', 0)
-        tracker.train_rows = model_dict.get('train_count',0)
-        tracker.test_rows = model_dict.get('test_count',0)
+        tracker.train_rows = model_dict.get('train_rows',0)
+        tracker.test_rows = model_dict.get('test_rows',0)
 
         df = tracker.get_df()
 
