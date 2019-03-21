@@ -1,4 +1,5 @@
 import os
+import json
 from conf.conf import JOB_ROOT_DIR
 from pyspark.sql import SparkSession
 from libs.feature_datasource.reader import get_features_meta_by_name
@@ -177,7 +178,7 @@ class Task():
     def run_task(self,task_dict,spark:SparkSession=None):
         task_name = task_dict['name']
         task_start_time = datetime.now()
-
+        pack_libs(overwrite=True,job_name=task_name)
 
         if spark is None:
             task_spark = spark_session(task_name, 20)
@@ -277,6 +278,7 @@ class Task():
 
                 if ds is not None:
                     ds_dict = {}
+                    ds_dict['name'] = feature_name
                     ds_dict['type'] = 'extend'
                     ds_dict['datasouce'] = ds
                     ds_dict['keys'] = feature.get("keys", [])
@@ -314,23 +316,22 @@ class Task():
             print("Base Data is None!!!!")
             return
 
-        # @staticmethod
-        # def unionRaw(rawDf,featureDf,keys,number_features=None):
-        #     raw = rawDf.alias("raw")
-        #     feature = featureDf.alias("feature")
-        #     joinedDf = raw.join(feature,keys,"left")
-        #     if number_features:
-        #         for f in number_features:
-        #             logger.info("int not zero....")
-        #             joinedDf = joinedDf.withColumn(f, udfs.int_default_zero(f))
-        #     return joinedDf
+        task_dict['train_count'] = train_df.count()
+        task_dict['test_count'] = test_df.count()
+        print(f"train_count:{train_count} test_count:{test_count}")
 
         for ds_item in datasource_list:
             ds = ds_item['datasouce']
             if ds_item['type'] != 'base':
-                # train_df = train_df.alias("train_df")
+                # train_df = train_df.alias("train_df")train_valid_count
                 # feature = featureDf.alias("feature")
                 df = ds.get_dataframe()
+                train_valid_count  = train_df.join(df, ds_item['keys']).count()
+                test_valid_count = train_df.join(df, ds_item['keys']).count()
+                task_dict[f"{ds_item['name']}_train_valid_count" ] = train_valid_count
+                task_dict[f"{ds_item['name']}_test_valid_count"] = test_valid_count
+                print(f"{ds_item['name']} train_valid_count:{train_valid_count} test_count:{test_valid_count}")
+
                 train_df = train_df.join(df, ds_item['keys'], 'left')
                 test_df = test_df.join(df, ds_item['keys'], 'left')
 
@@ -389,6 +390,13 @@ class Task():
             model_dict['features_base'] = features_base
             model_dict['features_extend'] = features_extend
             model_dict['features_weight'] = feature_weight_filename
+            model_dict['features_dim'] = input_dim
+            model_dict['train_rows'] = task_dict['train_count']
+            model_dict['test_rows'] = task_dict['test_count']
+
+
+            task_dict_str = json.dumps(task_dict,indent=4)
+            print(task_dict_str)
 
             self.commit(model_dict)
 
@@ -402,15 +410,15 @@ class Task():
         }
         eg = create_engine('mysql+mysqldb://{user}:{password}@{host}/{database}'.format(**config))
         tracker = Tracker()
-        tracker.job_name = model_dict.get("job_name")
+        tracker.job_name = model_dict.get("task_name")
         tracker.model_name = model_dict.get("model_name")
         tracker.start_time = model_dict.get("start_time")
         tracker.end_time = model_dict.get("end_time")
-        tracker.train_evaluate = model_dict.get("train_evaluate")
-        tracker.test_evaluate = model_dict.get("test_evaluate")
-        tracker.features_base = model_dict.get("features_base")
-        tracker.features_extend = model_dict.get("features_extend")
-        tracker.new_features_weight = str(model_dict.get("features_weight"))
+        tracker.train_evaluate = str(model_dict.get("train_evaluate"))
+        tracker.test_evaluate = str(model_dict.get("test_evaluate"))
+        tracker.features_base = str(model_dict.get("features_base"))
+        tracker.features_extend = str(model_dict.get("features_extend"))
+        tracker.features_weight = str(model_dict.get("features_weight"))
 
         df = tracker.get_df()
 

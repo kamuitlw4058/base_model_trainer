@@ -21,12 +21,12 @@ def get_image_vector_model():
     base_model = VGG16(weights=model_path)
 
     # print(base_model.summary())
-    temp_model = base_model.get_layer('fc2').output
-    temp_model = layers.Dense(1000, activation='linear', name='predictions')(temp_model)
+    temp_model = base_model.get_layer('fc1').output
+    #temp_model = layers.Dense(1000, activation='linear', name='predictions')(temp_model)
 
     model = Model(inputs=base_model.input, outputs=temp_model)
 
-    model.load_weights(model_path)
+    #model.load_weights(model_path)
 
     return model
 

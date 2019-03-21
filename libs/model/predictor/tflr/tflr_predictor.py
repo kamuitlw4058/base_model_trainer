@@ -12,7 +12,7 @@ from sklearn.metrics import roc_auc_score
 # import pyarrow as pa
 import numpy as np
 from conf.conf import CURRENT_WORK_DIR, PACKAGE_NAME
-from conf.hadoop import PYTHON_ENV_CACHE, HDFS_CODE_CACHE
+from conf.hadoop import PYTHON_ENV_CACHE,get_hadoop_code_cache
 from conf import xlearning
 from libs.env.shell import run_cmd
 from libs.env.hdfs import hdfs
@@ -108,7 +108,7 @@ class  TFLRPredictor(Predictor):
                            f'{xlearning.XL_SUBMIT}',
                            f'--app-type "tensorflow"',
                            f'--app-name "prediction-{self._job_id}"',
-                           f'--cacheArchive {HDFS_CODE_CACHE}#libs,{PYTHON_ENV_CACHE}#python3',
+                           f'--cacheArchive {get_hadoop_code_cache(self._job_id)}#libs,{PYTHON_ENV_CACHE}#python3',
                            f'--launch-cmd "{job_cmd}"',
                            f'--worker-memory {xlearning.WORKER_MEMORY}',
                            f'--worker-num {worker_num}',

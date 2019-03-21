@@ -12,6 +12,11 @@ def to_ctr_dict(ext_key, ext_val):
     return {k: v for k, v in zip(eval(ext_key), eval(ext_val)) if k[-3:] in ['clk', 'imp', 'ctr']}
 
 
+# @udf(ArrayType(ArrayType(DoubleType)))
+# def to_index_list(key_list):
+#     return {k: v for k, v in zip(eval(ext_key), eval(ext_val)) if k[-3:] in ['clk', 'imp', 'ctr']}
+
+
 @udf()
 def to_string(v):
     return str(v)
@@ -42,11 +47,11 @@ def vector_values(v):
     return [float(i) for i in v.values]
 
 
-@udf(returnType=VectorUDT())
+@udf(VectorUDT())
 def to_vector(dt):
     return Vectors.dense(dt)
 
-@udf(returnType=IntegerType())
+@udf(IntegerType())
 def to_array_size(dt):
     if dt is not None:
         return len(dt)

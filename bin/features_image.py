@@ -13,12 +13,12 @@ from libs.feature.feature_proessing import processing
 from libs.feature_dataoutput.hdfs_output import HdfsOutput
 from libs.model.trainer.trainer_factory import TrainerFactory
 from libs.model.predictor.predictor_factory import PredictorFactory
-from libs.feature.udfs import to_vector,to_array_size,vector_indices,to_string
+from libs.feature.udfs import to_vector,to_array_size,vector_indices,to_string,vector_values
 from libs.feature_datasource.imp.ad_image import  AdImage
 from libs.env.spark import spark_session
 from  libs.pack import  pack_libs
 from pyspark.sql.dataframe import DataFrame
-pack_libs(overwrite=True)
+pack_libs(overwrite=True,job_name='testimage')
 from pyspark.sql.functions import when
 from pyspark.ml.linalg import Vectors, VectorUDT
 from pyspark.ml.feature import OneHotEncoder, StringIndexer, VectorAssembler, StringIndexerModel
@@ -51,14 +51,15 @@ train_tranfrom.show(10,truncate=True)
 
 
 train_tranfrom:DataFrame = train_tranfrom.withColumn('feature_indices', vector_indices('feature'))
-train_tranfrom = train_tranfrom.select("feature")
+train_tranfrom:DataFrame = train_tranfrom.withColumn('feature_values', vector_values('feature'))
+train_tranfrom = train_tranfrom.select(["feature_indices","feature_values"])
 df = train_tranfrom.toPandas()
 row_num = df.shape[0]
 print(row_num)
 import  numpy as np
 x = np.zeros(shape=[row_num, 2116], dtype=np.float32)
 for i, row in df.iterrows():
-    x[i, row.feature.indices] = row.feature.values
+    x[i, row.feature_indices] = row.feature_values
 
 print(x[0,:])
     #y[i, 0] = row.is_clk

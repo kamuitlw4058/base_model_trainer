@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 import os
 from pyspark import SparkConf
 from pyspark.sql import SparkSession
-from conf.spark import HDFS_SPARK_JARS, SPARK_CONFIG, SPARK_HOME, WORKER_PYTHON, DRIVER_PYTHON
+from conf.spark import HDFS_SPARK_JARS, SPARK_CONFIG, SPARK_HOME, WORKER_PYTHON, DRIVER_PYTHON,get_spark_config
 from datetime import datetime
 from conf.conf import JOB_ROOT_DIR
 from conf import clickhouse
@@ -66,7 +66,7 @@ def spark_session(spark_id, executor_num, local_dir=None):
         # ('spark.pyspark.python', './python3/bin/python3'),
         # ('spark.pyspark.driver.python', '/data/anaconda3/bin/python'),
         ('spark.yarn.archive', HDFS_SPARK_JARS),
-        ('spark.yarn.dist.archives', SPARK_CONFIG['SPARK_ARCHIVES']),
+        ('spark.yarn.dist.archives', get_spark_config(spark_id)['SPARK_ARCHIVES']),
         ('spark.eventLog.enabled', 'true'),
         ('spark.eventLog.compress', 'true'),
         ('spark.driver.memory', '2G'),

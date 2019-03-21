@@ -18,5 +18,14 @@ EXTNED_DATA_DIR='extend_data'
 HDFS_CACHE_ROOT = 'hdfs:///user/model/env'
 PYTHON_ENV_CACHE = os.path.join(HDFS_CACHE_ROOT, 'python3.zip')
 HDFS_CODE_CACHE = os.path.join(JOB_ROOT_DIR.HDFS_ROOT, 'libs.zip')
+HDFS_TEST_CACHE = os.path.join(JOB_ROOT_DIR.HDFS_ROOT + "/test/", 'libs.zip')
 HDFS_FEATURE_ROOT= 'hdfs:///user/model/feature'
 HDFS_EXTNED_DATA_ROOT= 'hdfs:///user/model/extend_data'
+
+
+
+def get_hadoop_code_cache(job_name=None):
+    if job_name is None:
+        return HDFS_CODE_CACHE
+    else:
+        return os.path.join(JOB_ROOT_DIR.HDFS_ROOT + f"/{job_name}/", 'libs.zip')

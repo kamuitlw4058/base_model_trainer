@@ -30,20 +30,27 @@ def zip_dir(src_dir, dst_name, new_root_name=None, ignore_dir=['__pycache__']):
             zipf.write(os.path.join(root, file), arcname)
     zipf.close()
 
+
+
+
+
 @debug.pycharm_skip
-def pack_libs(overwrite = True):
+def pack_libs(overwrite = True,job_name=None):
     path = os.path.join(os.getcwd(), LIB_NAME)
     zip_path = f'{LIB_NAME}.zip'
     zip_dir(path, zip_path)
 
-    from conf.hadoop import HDFS_CODE_CACHE
-    if hdfs.exists(HDFS_CODE_CACHE):
+
+    from conf.hadoop import get_hadoop_code_cache
+
+    hdfs_libs_path  = get_hadoop_code_cache(job_name)
+    if hdfs.exists(hdfs_libs_path):
         if not overwrite:
-            logger.info(f'{zip_path} is exist! {HDFS_CODE_CACHE}')
+            logger.info(f'{zip_path} is exist! {hdfs_libs_path}')
             return
-        hdfs.rm(HDFS_CODE_CACHE)
-    hdfs.mkdir(os.path.dirname(HDFS_CODE_CACHE))
+        hdfs.rm(hdfs_libs_path)
+    hdfs.mkdir(os.path.dirname(hdfs_libs_path))
 
-    hdfs.put(zip_path, HDFS_CODE_CACHE)
+    hdfs.put(zip_path, hdfs_libs_path)
 
-    logger.info(f'success upload {zip_path} to {HDFS_CODE_CACHE}')
+    logger.info(f'success upload {zip_path} to {hdfs_libs_path}')

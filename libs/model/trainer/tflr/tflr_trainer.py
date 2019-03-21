@@ -14,7 +14,7 @@ from libs.env.hdfs import hdfs
 import numpy as np
 from libs.model.linear_model import LogisticRegression
 from conf.conf import CURRENT_WORK_DIR
-from conf.hadoop import HDFS_CODE_CACHE
+from conf.hadoop import HDFS_CODE_CACHE,get_hadoop_code_cache
 from conf.spark import PYTHON_ENV_CACHE, WORKER_PYTHON
 from conf import xlearning
 from libs.env.shell import run_cmd
@@ -140,12 +140,12 @@ class TFLRTrainer(Trainer):
         driver_cmd = ' '.join([
             f'{xlearning.XL_SUBMIT}',
             f'--app-type "tensorflow"',
-            f'--app-name "CTR-{self._job_id}"',
+            f'--app-name "Train-{self._job_id}"',
             f'--launch-cmd "{worker_cmd}"',
             f'--input {self._hdfs_dir}/{data_name}#{data_name}',
             f'--output {self._hdfs_dir}/{self.get_model_name()}#{self.get_model_name()}',
             f'--board-logdir {_training_log_dir}',
-            f'--cacheArchive {HDFS_CODE_CACHE}#libs,{PYTHON_ENV_CACHE}#python3',
+            f'--cacheArchive {get_hadoop_code_cache(self._job_id)}#libs,{PYTHON_ENV_CACHE}#python3',
             f'--worker-memory {xlearning.WORKER_MEMORY}',
             f'--worker-num {worker_num}',
             f'--worker-cores {xlearning.WORKER_CORES}',

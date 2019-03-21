@@ -41,7 +41,8 @@ context_feature = [
     'Media_Domain',
     'geo_county',
     'geo_city',
-    'geo_province'
+    'geo_province',
+    'Bid_AdId'
 ]
 
 user_cap_feature = [

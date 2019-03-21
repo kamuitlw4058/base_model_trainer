@@ -14,7 +14,7 @@ from libs.feature.processing.number import IntProcessing
 from libs.feature.processing.number import DoubleProcessing
 from libs.feature.processing.multi_value_category import MultiValueCategoryProcessing
 from libs.feature.processing.vector import VectorProcessing
-from libs.feature.udfs import vector_indices
+from libs.feature.udfs import vector_indices,vector_values
 
 processing_dict ={
     IntProcessing.get_name(): IntProcessing,
@@ -77,7 +77,7 @@ def feature_dim(vocabulary):
 def get_result(df,lable_col):
 
     df = df.withColumn('feature_indices', vector_indices('feature'))
-    df = df.withColumn('feature_values', vector_indices('feature'))
+    df = df.withColumn('feature_values', vector_values('feature'))
     schema = [lable_col, 'feature_indices','feature_values']
     # others = [c for c in df.columns if c not in schema]
     res = (df
