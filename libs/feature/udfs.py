@@ -4,7 +4,7 @@ from pyspark.ml.linalg import Vectors, VectorUDT
 
 @udf(MapType(StringType(), StringType()))
 def to_ext_dict(ext_key, ext_val):
-    return {k: v for k, v in zip(ext_key.split(','), ext_val.split(','))}
+    return {k: v for k, v in zip(ext_key.split('#'), ext_val.split('#'))}
 
 
 @udf(MapType(StringType(), StringType()))

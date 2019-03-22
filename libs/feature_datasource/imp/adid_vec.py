@@ -45,14 +45,17 @@ class AdidVecDataSource(DataSource):
 
 
     def _produce_data(self,output_path):
-        user_df = read_csv("hdfs:///user/model/extend_data/user.txt", spark=self._spark, has_header=False,
+        user_file = "hdfs:///user/model/extend_data/user.csv"
+        user_df = read_csv(user_file, spark=self._spark, has_header=False,
                            delimiter='\t',
                            schema_names=['Id_Zid', 'imp', 'clk', 'imp_adid', 'clk_adid'])
 
-        word_vec_df = read_csv("hdfs:///user/model/extend_data/ad_vec.txt", spark=self._spark, has_header=False,
+        print(f"read user from:{user_file}")
+        word_vec_file = "hdfs:///user/model/extend_data/adid_emb_res.csv"
+        word_vec_df = read_csv(word_vec_file, spark=self._spark, has_header=False,
                                delimiter='\t',
                                schema_names=['adid', 'adid_vec'])
-
+        print(f"read word_vecv from:{word_vec_file}")
         apply_udf = split_to_list_udf(" ", DoubleType()).get_udf()
         word_vec_df = word_vec_df.withColumn("adid_arr", apply_udf("adid_vec"))
         word_vec_list = word_vec_df.toPandas().to_dict('records')

@@ -105,6 +105,7 @@ class RTBModelBaseDataSource(ClickHouseSQLDataSource):
             self._kwargs["TrainData"] = ""
         else:
             self._kwargs["TestData"] = ""
+
         # self._kwargs.update(kwargs)
 
 
@@ -118,8 +119,10 @@ class RTBModelBaseDataSource(ClickHouseSQLDataSource):
                     self._filter_vendor = True
                 elif f_str.startswith("Device_Os"):
                     self._filter_device_os = True
-                elif f_str.startswith("has(Segment.Id, 100012)"):
+                    self._kwargs['DeviceOs'] = str(f_str.split("=")[1]).replace("'",'')
+                elif f_str.startswith("has(Segment.Id,100012)"):
                     self._filter_is_ht = True
+                    self._kwargs['ht'] = f_str.split("=")[1]
             self._apply_filter += self._global_filter
 
 

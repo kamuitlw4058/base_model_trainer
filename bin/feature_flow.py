@@ -4,7 +4,7 @@ from libs.task.task import Task
 
 g_task_dict ={
     'name':'test_job',
-    'task_args':{ 'interval':10,'account': 12, 'vendor': 24},
+    'task_args':{ 'interval':30,'account': 12, 'vendor': 24},
     'data_split':
         {
             'mode': 'date',
@@ -18,7 +18,7 @@ g_task_dict ={
         {
             'type': 'RTBModelBaseDataSource',
             'name': "rtb",
-            'global_filter' :['Win_Price > 0', "Device_Os='android'", 'has(Segment.Id, 100012)=1 '],
+            'global_filter' :['Win_Price > 0', "Device_Os='android'", 'has(Segment.Id,100012)=0 '],
             'overwrite':False,
             'train_args':
                 {
@@ -36,16 +36,17 @@ g_task_dict ={
               {'processing': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_ctr'},
             ]},
         # {"features_name": "AdImage",
+        #  "features_class": "AdImage",
         #  'keys': ["Bid_AdId"], 'overwrite': False,
         #  'processing': [
         #      {'processing': 'vector', 'col_name': 'adimage'},
         #  ]},
-        {"features_name": "AdidVecDataSource",
-         'join_type':'left',
-         'keys': ["Id_Zid"], 'overwrite': True,
-         'processing': [
-            {'processing': 'vector', 'col_name': 'adid_vec_avg'},
-         ]},
+        # {"features_name": "qd_imp_seq_vec16",
+        #  "features_class": "AdidVecDataSource",
+        #  'keys': ["Id_Zid"], 'overwrite': True,
+        #  'processing': [
+        #     {'processing': 'vector', 'col_name': 'adid_vec_avg'},
+        #  ]},
     ],
 
     'features_processing':{

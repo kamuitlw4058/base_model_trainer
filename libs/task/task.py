@@ -198,6 +198,7 @@ class Task():
         features_base_name =features_base['name']
         if features_base['type'] == 'RTBModelBaseDataSource':
             task_dict['result']['global_filter'] = features_base.get('global_filter', [])
+            task_dict['result']['base_overwrite'] = features_base.get('overwrite', False)
             apply_args = update_dict(task_args, features_base.get('train_args', {}))
             train_ds = RTBModelBaseDataSource(features_base['name'],
                                               task_args['train_start_date'],
@@ -208,6 +209,7 @@ class Task():
                                               **apply_args)
             ds_dict = {}
             ds_dict['type'] = 'base'
+            ds_dict['name'] = features_base['name']
             ds_dict['dataset'] = 'train'
             ds_dict['datasouce'] = train_ds
             ds_dict['overwrite'] = features_base.get("overwrite", False)
@@ -226,6 +228,7 @@ class Task():
             ds_dict = {}
             ds_dict['type'] = 'base'
             ds_dict['dataset'] = 'test'
+            ds_dict['name'] = features_base['name']
             ds_dict['datasouce'] = test_ds
             ds_dict['overwrite'] = features_base.get("overwrite", False)
             ds_dict['join_type'] = features_base.get('join_type', 'left')
@@ -234,8 +237,10 @@ class Task():
 
         features_extend = task_dict.get("features_extend", [])
         features_extend_name_list =[]
+
         for feature in features_extend:
             feature_name = feature.get("features_name", "")
+            features_class = ""
             features_extend_name_list.append(feature_name)
             if feature_name != "":
                 feature_meta = get_features_meta_by_name(feature_name)
@@ -244,9 +249,8 @@ class Task():
                     features_class = feature_meta.get("feature_class", "")
                 else:
                     default_args = {}
-                    if feature_name == "AdImage" or feature_name == "AdidVecDataSource":
-                        features_class = feature_name
-                    else:
+                    features_class = feature.get("features_class", "")
+                    if features_class != "AdImage" and features_class != "AdidVecDataSource":
                         continue
 
                 feature_args = feature.get("args", {})
@@ -303,6 +307,7 @@ class Task():
 
         for ds_item in datasource_list:
             ds_item['datasouce'].produce_data(overwrite=ds_item['overwrite'])
+            task_dict['result'][f"{ds_item['name']}_overwrite"] = ds_item['overwrite']
 
         train_df = None
         test_df = None

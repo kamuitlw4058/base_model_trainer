@@ -128,8 +128,8 @@ def get_raw_columns():
         # 'lower(Home_Category) as Home_Category',
         "lower(arrayStringConcat(AppCategory.Key, ',')) as AppCategory",
         "arrayStringConcat(arrayMap(x -> toString(x), Segment.Id), ',') as segment",
-        "arrayStringConcat(Ext.Key, ',') as ext_key",
-        "lower(arrayStringConcat(Ext.Value, ',')) as ext_value"
+        "arrayStringConcat(Ext.Key, '#') as ext_key",
+        "lower(arrayStringConcat(Ext.Value, '#')) as ext_value"
     ]
     return [i for i in cols]
 
