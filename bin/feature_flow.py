@@ -28,23 +28,23 @@ g_task_dict ={
                 }
         },
     'features_extend':[
-        # { "features_name":"av_ctr_day_interval{interval}",'args':{'interval':30},
-        #   'keys':["Id_Zid","Media_VendorId","Bid_CompanyId","EventDate"],'overwrite':False,
-        #   'processing':[
-        #       {'processing': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_imp'},
-        #       {'processing': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_clk'},
-        #       {'processing': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_ctr'},
-        #     ]},
+        { "features_name":"av_ctr_day_interval{interval}",'args':{'interval':30},
+          'keys':["Id_Zid","Media_VendorId","Bid_CompanyId","EventDate"],'overwrite':False,
+          'processing':[
+              {'processing': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_imp'},
+              {'processing': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_clk'},
+              {'processing': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_ctr'},
+            ]},
         # {"features_name": "AdImage",
         #  'keys': ["Bid_AdId"], 'overwrite': False,
         #  'processing': [
         #      {'processing': 'vector', 'col_name': 'adimage'},
         #  ]},
         {"features_name": "AdidVecDataSource",
-         'join_type':'inner',
+         'join_type':'left',
          'keys': ["Id_Zid"], 'overwrite': True,
          'processing': [
-             {'processing': 'vector', 'col_name': 'adid_vec_avg'},
+            {'processing': 'vector', 'col_name': 'adid_vec_avg'},
          ]},
     ],
 

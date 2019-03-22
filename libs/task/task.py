@@ -178,6 +178,7 @@ class Task():
 
     def run_task(self,task_dict,spark:SparkSession=None):
         task_name = task_dict['name']
+        task_dict['result'] = {}
         task_start_time = datetime.now()
         pack_libs(overwrite=True,job_name=task_name)
 
@@ -196,6 +197,7 @@ class Task():
         features_base = task_dict['features_base']
         features_base_name =features_base['name']
         if features_base['type'] == 'RTBModelBaseDataSource':
+            task_dict['result']['global_filter'] = features_base.get('global_filter', [])
             apply_args = update_dict(task_args, features_base.get('train_args', {}))
             train_ds = RTBModelBaseDataSource(features_base['name'],
                                               task_args['train_start_date'],
@@ -324,9 +326,9 @@ class Task():
             print("Base Data is None!!!!")
             return
 
-        task_dict['train_count'] = train_df.count()
-        task_dict['test_count'] = test_df.count()
-        print(f"train_count:{ task_dict['train_count']} test_count:{task_dict['test_count']}")
+        task_dict['result']['test_count'] = test_df.count()
+        task_dict['result']['train_count'] = train_df.count()
+        print(f"train_count:{ task_dict['result']['train_count']} test_count:{task_dict['result']['test_count']}")
 
         for ds_item in datasource_list:
             ds = ds_item['datasouce']
@@ -336,12 +338,15 @@ class Task():
                 df = ds.get_dataframe()
                 train_valid_count  = train_df.join(df, ds_item['keys']).count()
                 test_valid_count = test_df.join(df, ds_item['keys']).count()
-                task_dict[f"{ds_item['name']}_train_valid_count" ] = train_valid_count
-                task_dict[f"{ds_item['name']}_test_valid_count"] = test_valid_count
-                task_dict[f"{ds_item['name']}_train_valid_precent" ] = round(train_valid_count/ task_dict['train_count'],3)
-                task_dict[f"{ds_item['name']}_test_valid_count"] = round(test_valid_count/task_dict['test_count'])
+                train_valid_percent = round(train_valid_count / task_dict['result']['train_count'], 3)
+                test_valid_percent = round(test_valid_count / task_dict['result']['test_count'], 3)
+                task_dict['result'][f"{ds_item['name']}_train_valid" ] = train_valid_count
+                task_dict['result'][f"{ds_item['name']}_test_valid"] = test_valid_count
+                task_dict['result'][f"{ds_item['name']}_train_valid_p" ] =train_valid_percent
+                task_dict['result'][f"{ds_item['name']}_test_valid_p"] = test_valid_percent
+                task_dict['result'][f"{ds_item['name']}_join_type"] = ds_item['join_type']
                 print(f"{ds_item['name']} train_valid_count:{train_valid_count} test_count:{test_valid_count}")
-                print(f"{ds_item['name']} train_valid_precent:{train_valid_count/ task_dict['train_count']} test_count:{test_valid_count/task_dict['test_count']}")
+                print(f"{ds_item['name']} train_valid_precent:{train_valid_percent} test_count:{test_valid_percent}")
 
                 train_df = train_df.join(df, ds_item['keys'], ds_item['join_type'])
                 test_df = test_df.join(df, ds_item['keys'], ds_item['join_type'])
@@ -402,8 +407,9 @@ class Task():
             model_dict['features_extend'] = features_extend_name_list
             model_dict['features_weight'] = feature_weight_filename
             model_dict['features_dim'] = input_dim
-            model_dict['train_rows'] = task_dict['train_count']
-            model_dict['test_rows'] = task_dict['test_count']
+            model_dict['train_rows'] = task_dict['result']['train_count']
+            model_dict['test_rows'] = task_dict['result']['test_count']
+            model_dict['result'] = task_dict['result']
 
 
             #task_dict_str = json.dumps(task_dict,indent=4)
@@ -431,6 +437,7 @@ class Task():
         tracker.features_base = str(model_dict.get("features_base"))
         tracker.features_extend = str(model_dict.get("features_extend"))
         tracker.features_weight = str(model_dict.get("features_weight"))
+        tracker.result = str(model_dict.get("result"))
         tracker.features_dim = model_dict.get('features_dim', 0)
         tracker.train_rows = model_dict.get('train_rows',0)
         tracker.test_rows = model_dict.get('test_rows',0)
