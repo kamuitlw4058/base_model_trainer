@@ -5,9 +5,6 @@ from pyspark.ml.feature import OneHotEncoder, StringIndexer, VectorAssembler, St
 from pyspark.ml import Pipeline
 from pyspark.sql import functions
 from libs.feature.multi_category_encoder import MultiCategoryEncoder, MultiCategoryEncoderModel
-from libs.feature.feature_encoder import FeatureEncoder
-import  json
-from libs.feature import udfs
 
 from libs.feature.processing.onehot import OneHotProcessing
 from libs.feature.processing.number import IntProcessing
@@ -106,7 +103,7 @@ def get_features_vocabulary(vocabulary):
 
 
 def processing(train, test, processing_conf):
-    logger.info(f'train columns {train.schema.names}')
+    logger.info(f'train orig columns {train.schema.names}')
     processing_col_conf = processing_conf["cols"]
     processing_col_dict={}
     total_cols = []
@@ -115,18 +112,38 @@ def processing(train, test, processing_conf):
         processing_col_dict[k] = []
 
 
+    processing_cols_check_dict ={}
+    processing_cols_check_func_list =[]
 
     for processing_col in processing_col_conf:
         processing_name = processing_col['processing']
         processing_col_name = processing_col[conf_processing_col_name]
         processing_col_list = processing_col_dict.get(processing_name)
         if processing_col_list is not None:
-            if train.agg(functions.countDistinct(processing_col_name).alias('cnt')).collect()[0].cnt > 1:
-                processing_col_list.append(processing_col_name)
-            else:
-                logger.warning(f'processor:{processing_name} col:{processing_col_name} count <=1 drop it')
+            processing_cols_check_func_list.append(functions.countDistinct(processing_col_name).alias(processing_col_name + '_cnt'))
+            processing_cols_check_dict[processing_col_name] = (processing_name,processing_col_name + "_cnt")
+            # if train.agg(functions.countDistinct(processing_col_name).alias('cnt')).collect()[0].cnt > 1:
+            #
+            #     processing_col_list.append(processing_col_name)
+            # else:
+            #     logger.warning(f'processor:{processing_name} col:{processing_col_name} count <=1 drop it')
         else:
             logger.warning(f'processor:{processing_name} col:{processing_col_name} not register processer drop it')
+
+    cnts =  train.agg(*processing_cols_check_func_list).collect()[0]
+
+    for processing_col_name,(processing_name, col_cnt_name) in processing_cols_check_dict.items():
+        col_cnt = eval(f"cnts.{col_cnt_name}")
+        if col_cnt > 1:
+            processing_col_list = processing_col_dict.get(processing_name)
+            if processing_col_list is not None:
+                processing_col_list.append(processing_col_name)
+        else:
+            logger.warning(f'processor:{processing_name} col:{processing_col_name} count <=1 drop it')
+
+
+
+
 
     logger.info(f'processing_col_dict: {processing_col_dict}')
 

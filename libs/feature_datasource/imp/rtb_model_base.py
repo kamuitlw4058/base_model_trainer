@@ -1,13 +1,13 @@
 from libs.feature_datasource.imp.clickhouse_sql import  ClickHouseSQLDataSource
 import logging
 logger = logging.getLogger(__name__)
-from libs.datasource.sql import SQL
+from libs.feature_datasource.sql import SQL
 import pandas as pd
 from sqlalchemy import create_engine
-from conf.conf import MAX_POS_SAMPLE, CLK_LIMIT,JOB_ROOT_DIR
+from conf.conf import MAX_POS_SAMPLE, CLK_LIMIT
 from libs.feature.define import get_raw_columns,get_feature_base_columns
-from conf.conf import ZAMPLUS_ZAMPDA_DATABASE,ZAMPLUS_ZAMPDA_LOCAL_DATABASE,ZAMPLUS_RTB_ALL_JDBC_URL,ZAMPLUS_RTB_LOCAL_JDBC_URL,CLICKHOUSE_DAILY_SQL_DATE_COL,ZAMPLUS_RTB_ALL_URL
-from conf.conf import RTB_ALL_TABLE_NAME, RTB_LOCAL_TABLE_NAME,CLICKHOUSE_URL_TEMPLATE
+from conf.conf import ZAMPLUS_RTB_ALL_URL
+from conf.conf import RTB_ALL_TABLE_NAME, RTB_LOCAL_TABLE_NAME
 
 from datetime import datetime
 from pyspark.sql.functions import broadcast

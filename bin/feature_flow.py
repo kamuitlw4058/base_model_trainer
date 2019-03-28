@@ -10,15 +10,15 @@ g_task_dict ={
             'mode': 'date',
             'args':{
             'train_start_date':'2019-03-18',
-            'train_end_date':'2019-03-20',
-            'test_start_date': '2019-03-21',
-            'test_end_date': '2019-03-21'}
+            'train_end_date':'2019-03-25',
+            'test_start_date': '2019-03-26',
+            'test_end_date': '2019-03-26'}
         },
     'features_base':
         {
             'type': 'RTBModelBaseDataSource',
             'name': "rtb",
-            'global_filter' :['Win_Price > 0', "Device_Os='android'", 'has(Segment.Id,100012)=0 '],
+            'global_filter' :['Win_Price > 0', "Device_Os='android'", 'has(Segment.Id,100012)=1 '],
             'overwrite':False,
             'train_args':
                 {
@@ -41,10 +41,11 @@ g_task_dict ={
         #  'processing': [
         #      {'processing': 'vector', 'col_name': 'adimage'},
         #  ]},
-        # {"features_name": "qd_imp_seq_vec16",
+        # {"features_name": "yt_adid_seq_vec8",
         #  "features_class": "AdidVecDataSource",
         #  'keys': ["Id_Zid"], 'overwrite': True,
         #  'processing': [
+        #     {'processing': 'vector', 'col_name': 'adid_clk_vec_avg'},
         #     {'processing': 'vector', 'col_name': 'adid_vec_avg'},
         #  ]},
     ],

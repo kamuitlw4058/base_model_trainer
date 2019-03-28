@@ -22,6 +22,26 @@ class vector_dense_udf:
         return warpped_udf
 
 
+
+class value_dict_index_udf:
+    def __init__(self,dict,default_value,output_type=StringType(),**kwargs):
+        self.dict = dict
+        self.kwargs = kwargs
+        self.default_value = default_value
+        self.output_type = output_type
+
+
+    def get_values_by_index(self,value):
+        return self.dict.get(value,self.default_value)
+
+
+    def get_udf(self):
+        @udf(ArrayType(self.output_type))
+        def warpped_udf(col):
+            return self.get_values_by_index(str(col))
+
+        return warpped_udf
+
 class list_dict_index_udf:
     def __init__(self,dict,default_value,output_type=StringType(),**kwargs):
         self.dict = dict
@@ -63,6 +83,8 @@ class list_dict_has_key_udf:
 
 
 class list_avg_udf:
+    def __init__(self,size):
+        self._size = size
 
     def get_udf(self):
         import numpy as np
@@ -75,8 +97,32 @@ class list_avg_udf:
                     a = np.array(item)
                 else:
                     a += np.array(item)
+            if a is None:
+                a = np.array([0.0 for i in range(self._size)])
+                return a.tolist()
 
             return (a/l).tolist()
+
+        return warpped_udf
+
+class list_sum_udf:
+    def __init__(self,size):
+        self._size = size
+
+    def get_udf(self):
+        import numpy as np
+        @udf(ArrayType(DoubleType()))
+        def warpped_udf(col):
+            a = None
+            for item in col:
+                if a is None:
+                    a = np.array(item)
+                else:
+                    a += np.array(item)
+            if a is None:
+                a = np.array([0.0 for i in range(self._size)])
+
+            return a.tolist()
 
         return warpped_udf
 
