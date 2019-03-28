@@ -30,33 +30,42 @@ g_task_dict ={
     'features_extend':[
         { "features_name":"av_ctr_day_interval{interval}",'args':{'interval':30},
           'keys':["Id_Zid","Media_VendorId","Bid_CompanyId","EventDate"],'overwrite':False,
-          'processing':[
-              {'processing': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_imp'},
-              {'processing': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_clk'},
-              {'processing': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_ctr'},
+          'imp':[
+              {'imp': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_imp'},
+              {'imp': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_clk'},
+              {'imp': 'onehot', 'col_name': 'a{account}_v{vendor}_last{interval}_ctr'},
             ]},
         # {"features_name": "AdImage",
         #  "features_class": "AdImage",
         #  'keys': ["Bid_AdId"], 'overwrite': False,
-        #  'processing': [
-        #      {'processing': 'vector', 'col_name': 'adimage'},
+        #  'imp': [
+        #      {'imp': 'vector', 'col_name': 'adimage'},
         #  ]},
-        # {"features_name": "yt_adid_seq_vec8",
-        #  "features_class": "AdidVecDataSource",
-        #  'keys': ["Id_Zid"], 'overwrite': True,
-        #  'processing': [
-        #     {'processing': 'vector', 'col_name': 'adid_clk_vec_avg'},
-        #     {'processing': 'vector', 'col_name': 'adid_vec_avg'},
-        #  ]},
+        {"features_name": "yt_adid_seq_vec8",
+         "features_class": "AdidVecDataSource",
+         'keys': ["Id_Zid"], 'overwrite': True,
+         'imp': [
+            {'imp': 'vector', 'col_name': 'adid_clk_vec_avg'},
+            {'imp': 'vector', 'col_name': 'adid_vec_avg'},
+         ]},
+
+    ],
+    'features_transform':[
+        {"features_name": "yt_adid_tran_vec8",
+         "features_class": "AdidVecTranform",
+         'keys': ["Id_Zid"], 'overwrite': True,
+         'imp': [
+            {'imp': 'vector', 'col_name': 'Bid_AdId_emb'},
+         ]}
     ],
 
     'features_processing':{
         'label':'is_clk',
         'cols':
         [
-            # {'processing': 'int', 'col_name': 'Time_Hour'},
-            # {'processing': 'onehot', 'col_name': 'Time_Hour'},
-            # {'processing': 'onehot', 'col_name': 'Age'},
+            # {'imp': 'int', 'col_name': 'Time_Hour'},
+            # {'imp': 'onehot', 'col_name': 'Time_Hour'},
+            # {'imp': 'onehot', 'col_name': 'Age'},
         ]
     },
     'model':[

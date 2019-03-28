@@ -5,20 +5,21 @@ logging.config.dictConfig(json.load(open('conf/logging.json')))
 import libs.env.hadoop
 from conf.conf import JOB_ROOT_DIR
 from pyspark.sql import SparkSession
-from libs.feature_datasource.reader import get_features_meta_by_name
+from libs.datasource.reader import get_features_meta_by_name
 from datetime import datetime,timedelta
-from libs.feature_datasource.imp.clickhouse_sql import ClickHouseSQLDataSource
-from libs.feature_datasource.imp.rtb_model_base import RTBModelBaseDataSource
-from libs.feature_datasource.imp.clickhouse_daily_sql import  ClickHouseDailySQLDataSource
-from libs.feature_datasource.imp.ad_image import  AdImage
-from libs.feature_datasource.imp.adid_vec import  AdidVecDataSource
+from libs.datasource.imp.clickhouse_sql import ClickHouseSQLDataSource
+from libs.datasource.imp.rtb_model_base import RTBModelBaseDataSource
+from libs.datasource.imp.clickhouse_daily_sql import  ClickHouseDailySQLDataSource
+from libs.datasource.imp.tranform.adid_tranform_vec import AdidVecTranform
+from libs.datasource.imp.ad_image import  AdImage
+from libs.datasource.imp.adid_vec import  AdidVecDataSource
 from libs.env.spark import spark_session
 from libs.pack import  pack_libs
-from libs.feature.feature_proessing import processing
-from libs.feature_dataoutput.hdfs_output import HdfsOutput
+from libs.processing.feature_proessing import processing
+from libs.dataoutput.hdfs_output import HdfsOutput
 from libs.model.trainer.trainer_factory import TrainerFactory
 from libs.model.predictor.predictor_factory import PredictorFactory
-from libs.feature.define import user_feature,context_feature,user_cap_feature,other_feature
+from libs.processing.define import user_feature,context_feature,user_cap_feature,other_feature
 from libs.utilis.dict_utils import list_dict_duplicate_removal
 from libs.job.tracker import Tracker
 from sqlalchemy import create_engine
@@ -33,9 +34,9 @@ def get_rtb_processing():
             'AppCategory',
             'segment'
         ]:
-            cols_list.append({'processing': 'onehot', 'col_name': col})
+            cols_list.append({'imp': 'onehot', 'col_name': col})
         else:
-            cols_list.append({'processing': 'multi_value', 'col_name': col})
+            cols_list.append({'imp': 'multi_value', 'col_name': col})
     return cols_list
 
 
@@ -215,7 +216,7 @@ class Task():
             ds_dict['dataset'] = 'train'
             ds_dict['datasouce'] = train_ds
             ds_dict['overwrite'] = features_base.get("overwrite", False)
-            ds_dict['processing'] = get_rtb_processing()
+            ds_dict['imp'] = get_rtb_processing()
             ds_dict['join_type'] = features_base.get('join_type', 'left')
             datasource_list.append(ds_dict)
 
@@ -299,10 +300,10 @@ class Task():
                     ds_dict['keys'] = feature.get("keys", [])
                     ds_dict['overwrite'] = feature.get("overwrite", False)
                     ds_dict['join_type'] = feature.get('join_type','left')
-                    processing_list = feature.get("processing", [])
+                    processing_list = feature.get("imp", [])
                     for p in processing_list:
                         p['col_name'] = p['col_name'].format(**apply_args)
-                    ds_dict['processing'] = processing_list
+                    ds_dict['imp'] = processing_list
                     datasource_list.append(ds_dict)
 
         # print(datasource_list)
@@ -316,7 +317,7 @@ class Task():
 
         for ds_item in datasource_list:
             ds = ds_item['datasouce']
-            processing_list = ds_item.get('processing', [])
+            processing_list = ds_item.get('imp', [])
             task_dict['features_processing']['cols'] += processing_list
             # df = ds.get_dataframe()
             if ds_item['type'] == 'base' and ds_item['dataset'] == 'train':
@@ -333,6 +334,7 @@ class Task():
             print("Base Data is None!!!!")
             return
 
+
         task_dict['result']['test_count'] = test_df.count()
         task_dict['result']['train_count'] = train_df.count()
         print(f"train_count:{ task_dict['result']['train_count']} test_count:{task_dict['result']['test_count']}")
@@ -341,7 +343,7 @@ class Task():
             ds = ds_item['datasouce']
             if ds_item['type'] != 'base':
                 # train_df = train_df.alias("train_df")train_valid_count
-                # feature = featureDf.alias("feature")
+                # imp = featureDf.alias("imp")
                 df = ds.get_dataframe()
                 train_valid_count  = train_df.join(df, ds_item['keys']).count()
                 test_valid_count = test_df.join(df, ds_item['keys']).count()
@@ -357,6 +359,45 @@ class Task():
 
                 train_df = train_df.join(df, ds_item['keys'], ds_item['join_type'])
                 test_df = test_df.join(df, ds_item['keys'], ds_item['join_type'])
+
+
+
+
+        features_transform = task_dict.get("features_transform", [])
+
+        for feature in features_transform:
+            feature_name = feature.get("features_name", "")
+            features_class = ""
+            if feature_name != "":
+
+                default_args = {}
+                features_class = feature.get("features_class", "")
+                if features_class != "AdidVecTranform":
+                    continue
+
+                feature_args = feature.get("args", {})
+                apply_args = {}
+                apply_args.update(**default_args)
+                apply_args.update(**task_args)
+                apply_args.update(**feature_args)
+
+                if features_class == "null" or features_class == "":
+                    continue
+
+                if features_class == 'AdidVecTranform':
+                    processing_list = feature.get('imp', [])
+                    task_dict['features_processing']['cols'] += processing_list
+                    dt = AdidVecTranform(feature_name,spark=task_spark)
+                    train_df = dt.tranform(train_df)
+                    test_df = dt.tranform(test_df)
+                else:
+                    print("unknown data transform !!!!!")
+
+
+
+
+
+
 
         features_processing = task_dict['features_processing']
         print(f"features_processing:{features_processing}")

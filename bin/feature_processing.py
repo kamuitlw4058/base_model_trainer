@@ -1,11 +1,11 @@
-from libs.feature_datasource.imp.clickhouse_sql import ClickHouseSQLDataSource
-from libs.feature_datasource.imp.rtb_model_base import RTBModelBaseDataSource
-from libs.feature_datasource.imp.clickhouse_daily_sql import  ClickHouseDailySQLDataSource
+from libs.datasource.imp.clickhouse_sql import ClickHouseSQLDataSource
+from libs.datasource.imp.rtb_model_base import RTBModelBaseDataSource
+from libs.datasource.imp.clickhouse_daily_sql import  ClickHouseDailySQLDataSource
 from libs.job.job_parser import get_job_local_dir
 from libs.env.spark import spark_session
 from  libs.pack import  pack_libs
-from libs.feature.feature_proessing import processing
-from libs.feature_dataoutput.hdfs_output import HdfsOutput
+from libs.processing.feature_proessing import processing
+from libs.dataoutput.hdfs_output import HdfsOutput
 from libs.model.trainer.trainer_factory import TrainerFactory
 from libs.model.predictor.predictor_factory import PredictorFactory
 pack_libs(overwrite=True)
@@ -52,9 +52,9 @@ job_dict ={
         'label':'is_clk',
         'cols':
         [
-            {'processing': 'int', 'col_name': 'Time_Hour'},
-            {'processing': 'onehot', 'col_name': 'Time_Hour'},
-            {'processing': 'onehot', 'col_name': 'Age'},
+            {'imp': 'int', 'col_name': 'Time_Hour'},
+            {'imp': 'onehot', 'col_name': 'Time_Hour'},
+            {'imp': 'onehot', 'col_name': 'Age'},
         ]
     },
     'model':[

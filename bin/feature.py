@@ -54,7 +54,7 @@ def feature_tasks(options):
 
 
 if __name__ == '__main__':
-    logger.info('begin to feature process.')
+    logger.info('begin to imp process.')
 
     from conf.conf import JOB_ROOT_DIR
     if not os.path.exists(JOB_ROOT_DIR.LOCAL_ROOT):
@@ -78,8 +78,8 @@ if __name__ == '__main__':
     args_parser.add_argument('-t', '--filetype', dest='filetype', type=str, help='file source ,file type', default='csv')
     args_parser.add_argument('-p', '--filepath', dest='filepath', type=str, help='file source ,file path', default='')
     args_parser.add_argument('-d', '--debug-pycharm', dest='pycharm', action="store_true", help='pycharm runner')
-    args_parser.add_argument('-F', '--use-new-feature', dest='new_features', type=str,  help='new feature path',default=None)
-    args_parser.add_argument('-A', '--new-feature-args', dest='new_features_args', type=str, help='new feature args',
+    args_parser.add_argument('-F', '--use-new-imp', dest='new_features', type=str,  help='new imp path',default=None)
+    args_parser.add_argument('-A', '--new-imp-args', dest='new_features_args', type=str, help='new imp args',
                              default=None)
     args_parser.add_argument('-l', '--learning_rate', dest='learning_rate',  type=int, default=0.001,help='learning_rate')
     args_parser.add_argument('-L', '--l2', dest='l2',  type=int,default=0.001,help='l2')

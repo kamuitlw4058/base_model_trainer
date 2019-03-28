@@ -1,20 +1,20 @@
 import os
 from conf.conf import JOB_ROOT_DIR
 from pyspark.sql import SparkSession
-from libs.feature_datasource.reader import get_features_meta_by_name
+from libs.datasource.reader import get_features_meta_by_name
 from datetime import datetime,timedelta
-from libs.feature_datasource.imp.clickhouse_sql import ClickHouseSQLDataSource
-from libs.feature_datasource.imp.rtb_model_base import RTBModelBaseDataSource
-from libs.feature_datasource.imp.clickhouse_daily_sql import  ClickHouseDailySQLDataSource
+from libs.datasource.imp.clickhouse_sql import ClickHouseSQLDataSource
+from libs.datasource.imp.rtb_model_base import RTBModelBaseDataSource
+from libs.datasource.imp.clickhouse_daily_sql import  ClickHouseDailySQLDataSource
 from libs.job.job_parser import get_job_local_dir
 from libs.env.spark import spark_session
 from  libs.pack import  pack_libs
-from libs.feature.feature_proessing import processing
-from libs.feature_dataoutput.hdfs_output import HdfsOutput
+from libs.processing.feature_proessing import processing
+from libs.dataoutput.hdfs_output import HdfsOutput
 from libs.model.trainer.trainer_factory import TrainerFactory
 from libs.model.predictor.predictor_factory import PredictorFactory
-from libs.feature.udfs import to_vector,to_array_size,vector_indices,to_string,vector_values
-from libs.feature_datasource.imp.ad_image import  AdImage
+from libs.processing.udfs import to_vector,to_array_size,vector_indices,to_string,vector_values
+from libs.datasource.imp.ad_image import  AdImage
 from libs.env.spark import spark_session
 from  libs.pack import  pack_libs
 from pyspark.sql.dataframe import DataFrame
@@ -34,7 +34,7 @@ df = df.withColumn(f"adimage_vec", to_vector('adimage'))
 df = df.withColumn(f"Bid_AdId_str", to_string('Bid_AdId'))
 df:DataFrame = df.withColumn(f"adimage_size", to_array_size('adimage'))
 
-assembler = VectorAssembler(inputCols=["Bid_AdId_vec","adimage_vec"], outputCol='feature')
+assembler = VectorAssembler(inputCols=["Bid_AdId_vec","adimage_vec"], outputCol='imp')
 
 string_indexers = StringIndexer(inputCol="Bid_AdId_str", outputCol="Bid_AdId_idx", handleInvalid='keep')
 
@@ -50,8 +50,8 @@ train_tranfrom =model.transform(df)
 train_tranfrom.show(10,truncate=True)
 
 
-train_tranfrom:DataFrame = train_tranfrom.withColumn('feature_indices', vector_indices('feature'))
-train_tranfrom:DataFrame = train_tranfrom.withColumn('feature_values', vector_values('feature'))
+train_tranfrom:DataFrame = train_tranfrom.withColumn('feature_indices', vector_indices('imp'))
+train_tranfrom:DataFrame = train_tranfrom.withColumn('feature_values', vector_values('imp'))
 train_tranfrom = train_tranfrom.select(["feature_indices","feature_values"])
 df = train_tranfrom.toPandas()
 row_num = df.shape[0]
@@ -64,11 +64,11 @@ for i, row in df.iterrows():
 print(x[0,:])
     #y[i, 0] = row.is_clk
 
-#df = train_tranfrom.withColumn('feature_indices', vector_indices('feature'))
+#df = train_tranfrom.withColumn('feature_indices', vector_indices('imp'))
 
 # others = [c for c in df.columns if c not in schema]
 # res = (df
-#        # .select(['is_clk', 'feature'])
+#        # .select(['is_clk', 'imp'])
 #        #.orderBy(functions.rand())
 #        .select('feature_indices')
 #        )

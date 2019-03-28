@@ -62,7 +62,7 @@ class TFLRTrainer(Trainer):
             f = open(filename, mode='w', encoding='utf-8')
             for i in self._feature_weight:
                 f.write(f'{json.dumps(i)}\n')
-            logger.info('[%s] success, write feature file: %s', self._job_id, filename)
+            logger.info('[%s] success, write imp file: %s', self._job_id, filename)
         except Exception as e:
             logging.error('[%s] fail write %s', self._job_id, e)
             raise e

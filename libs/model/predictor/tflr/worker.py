@@ -67,7 +67,7 @@ def parse_options():
     parser.add_argument("--hdfs_dir", type=str, help="hdfs root dir for this job")
     parser.add_argument("--data", type=str, help="The relative path for data")
     parser.add_argument("--model", type=str, help="The relative save path for model")
-    parser.add_argument('--input_dim', type=int, help='feature vector size')
+    parser.add_argument('--input_dim', type=int, help='imp vector size')
 
     return parser.parse_known_args()
 

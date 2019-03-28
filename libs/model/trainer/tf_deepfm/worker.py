@@ -83,7 +83,7 @@ def parse_options():
     parser.add_argument('--model', type=str, help='The save path for model')
     parser.add_argument('--log_dir', type=str, help='The log path for model')
     parser.add_argument('--training_epochs', type=int, default=5, help='the epoch of the train')
-    parser.add_argument('--input_dim', type=int, help='feature vector size')
+    parser.add_argument('--input_dim', type=int, help='imp vector size')
     parser.add_argument('--learning_rate', type=float, help='learning rate of the train')
     parser.add_argument('--batch_size', type=int, help='The size of one batch')
     parser.add_argument('--l2', type=float, help='l2 regularization factor')

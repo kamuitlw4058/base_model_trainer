@@ -1,20 +1,20 @@
 import os
 from conf.conf import JOB_ROOT_DIR
 from pyspark.sql import SparkSession
-from libs.feature_datasource.reader import get_features_meta_by_name
+from libs.datasource.reader import get_features_meta_by_name
 from datetime import datetime,timedelta
-from libs.feature_datasource.imp.csv_datasource import CsvDataSource
-from libs.feature_datasource.imp.rtb_model_base import RTBModelBaseDataSource
-from libs.feature_datasource.imp.clickhouse_daily_sql import  ClickHouseDailySQLDataSource
+from libs.datasource.imp.csv_datasource import CsvDataSource
+from libs.datasource.imp.rtb_model_base import RTBModelBaseDataSource
+from libs.datasource.imp.clickhouse_daily_sql import  ClickHouseDailySQLDataSource
 from libs.job.job_parser import get_job_local_dir
 from libs.env.spark import spark_session
 from  libs.pack import  pack_libs
-from libs.feature.feature_proessing import processing
-from libs.feature_dataoutput.hdfs_output import HdfsOutput
+from libs.processing.feature_proessing import processing
+from libs.dataoutput.hdfs_output import HdfsOutput
 from libs.model.trainer.trainer_factory import TrainerFactory
 from libs.model.predictor.predictor_factory import PredictorFactory
-from libs.feature.udfs import to_vector,to_array_size,vector_indices,to_string
-from libs.feature_datasource.imp.ad_image import  AdImage
+from libs.processing.udfs import to_vector,to_array_size,vector_indices,to_string
+from libs.datasource.imp.ad_image import  AdImage
 from libs.env.spark import spark_session
 from  libs.pack import  pack_libs
 from pyspark.sql.dataframe import DataFrame
@@ -27,7 +27,7 @@ from pyspark.sql.types import DoubleType,ArrayType
 from libs.env.spark import spark_session
 from  libs.pack import  pack_libs
 from pyspark.sql.dataframe import DataFrame
-from libs.feature.udf.wrapper_udf import split_to_list_udf,list_dict_index_udf,list_dict_has_key_udf,list_avg_udf
+from libs.processing.udf.wrapper_udf import split_to_list_udf,list_dict_index_udf,list_dict_has_key_udf,list_avg_udf
 job_name = 'test_ds_csv'
 
 pack_libs(overwrite=True,job_name=job_name)

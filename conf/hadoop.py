@@ -19,7 +19,7 @@ HDFS_CACHE_ROOT = 'hdfs:///user/model/env'
 PYTHON_ENV_CACHE = os.path.join(HDFS_CACHE_ROOT, 'python3.zip')
 HDFS_CODE_CACHE = os.path.join(JOB_ROOT_DIR.HDFS_ROOT, 'libs.zip')
 HDFS_TEST_CACHE = os.path.join(JOB_ROOT_DIR.HDFS_ROOT + "/test/", 'libs.zip')
-HDFS_FEATURE_ROOT= 'hdfs:///user/model/feature'
+HDFS_FEATURE_ROOT= 'hdfs:///user/model/imp'
 HDFS_EXTNED_DATA_ROOT= 'hdfs:///user/model/extend_data'
 
 
