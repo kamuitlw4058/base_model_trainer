@@ -2,7 +2,6 @@ import os
 import json
 import logging.config
 logging.config.dictConfig(json.load(open('conf/logging.json')))
-import libs.env.hadoop
 from conf.conf import JOB_ROOT_DIR
 from pyspark.sql import SparkSession
 from libs.datasource.reader import get_features_meta_by_name
@@ -10,7 +9,7 @@ from datetime import datetime,timedelta
 from libs.datasource.imp.clickhouse_sql import ClickHouseSQLDataSource
 from libs.datasource.imp.rtb_model_base import RTBModelBaseDataSource
 from libs.datasource.imp.clickhouse_daily_sql import  ClickHouseDailySQLDataSource
-from libs.datasource.imp.tranform.adid_tranform_vec import AdidVecTranform
+from libs.datatransform.imp.adid_tranform_vec import AdidVecTranform
 from libs.datasource.imp.ad_image import  AdImage
 from libs.datasource.imp.adid_vec import  AdidVecDataSource
 from libs.env.spark import spark_session
@@ -24,6 +23,9 @@ from libs.utilis.dict_utils import list_dict_duplicate_removal
 from libs.job.tracker import Tracker
 from sqlalchemy import create_engine
 from libs.common.utils.DatetimeUtils import get_human_timestamp
+from libs.env.hadoop.init import init as hadpood_init
+
+hadpood_init()
 
 
 def get_rtb_processing():
@@ -243,7 +245,6 @@ class Task():
 
         for feature in features_extend:
             feature_name = feature.get("features_name", "")
-            features_class = ""
             features_extend_name_list.append(feature_name)
             if feature_name != "":
                 feature_meta = get_features_meta_by_name(feature_name)

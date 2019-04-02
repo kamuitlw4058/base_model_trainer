@@ -52,9 +52,9 @@ job_dict ={
         'label':'is_clk',
         'cols':
         [
-            {'imp': 'int', 'col_name': 'Time_Hour'},
-            {'imp': 'onehot', 'col_name': 'Time_Hour'},
-            {'imp': 'onehot', 'col_name': 'Age'},
+            {'feature': 'int', 'col_name': 'Time_Hour'},
+            {'feature': 'onehot', 'col_name': 'Time_Hour'},
+            {'feature': 'onehot', 'col_name': 'Age'},
         ]
     },
     'model':[

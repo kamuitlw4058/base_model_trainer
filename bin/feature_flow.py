@@ -4,21 +4,21 @@ from libs.task.task import Task
 
 g_task_dict ={
     'name':'test_job',
-    'task_args':{ 'interval':30,'account': 12, 'vendor': 24},
+    'task_args':{ 'interval':30,'account': 20, 'vendor': 24},
     'data_split':
         {
             'mode': 'date',
             'args':{
-            'train_start_date':'2019-03-18',
-            'train_end_date':'2019-03-25',
-            'test_start_date': '2019-03-26',
-            'test_end_date': '2019-03-26'}
+            'train_start_date':'2019-03-23',
+            'train_end_date':'2019-03-26',
+            'test_start_date': '2019-03-27',
+            'test_end_date': '2019-03-28'}
         },
     'features_base':
         {
             'type': 'RTBModelBaseDataSource',
             'name': "rtb",
-            'global_filter' :['Win_Price > 0', "Device_Os='android'", 'has(Segment.Id,100012)=1 '],
+            'global_filter' :['Win_Price > 0', "Device_Os='android'", 'has(Segment.Id,100020)=1 '],
             'overwrite':False,
             'train_args':
                 {
@@ -41,23 +41,23 @@ g_task_dict ={
         #  'imp': [
         #      {'imp': 'vector', 'col_name': 'adimage'},
         #  ]},
-        {"features_name": "yt_adid_seq_vec8",
+        {"features_name": "qu_gid_seq_vec16",
          "features_class": "AdidVecDataSource",
          'keys': ["Id_Zid"], 'overwrite': True,
          'imp': [
-            {'imp': 'vector', 'col_name': 'adid_clk_vec_avg'},
+            # {'imp': 'vector', 'col_name': 'adid_clk_vec_avg'},
             {'imp': 'vector', 'col_name': 'adid_vec_avg'},
          ]},
 
     ],
-    'features_transform':[
-        {"features_name": "yt_adid_tran_vec8",
-         "features_class": "AdidVecTranform",
-         'keys': ["Id_Zid"], 'overwrite': True,
-         'imp': [
-            {'imp': 'vector', 'col_name': 'Bid_AdId_emb'},
-         ]}
-    ],
+    # 'features_transform':[
+    #     {"features_name": "yt_adid_tran_vec8",
+    #      "features_class": "AdidVecTranform",
+    #      'keys': ["Id_Zid"], 'overwrite': True,
+    #      'imp': [
+    #         {'imp': 'vector', 'col_name': 'Bid_AdId_emb'},
+    #      ]}
+    # ],
 
     'features_processing':{
         'label':'is_clk',

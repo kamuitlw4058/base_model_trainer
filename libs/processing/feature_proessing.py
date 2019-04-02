@@ -60,7 +60,7 @@ def _extract_vocabulary(stages,stages_output_dict,dataframe_features,vector_cols
 def _dump_vocabulary(vocabulary):
     for feature in vocabulary:
         #logger.info(f"imp:{imp['name']} len:{len(imp['value'])} values:{imp['value']}")
-        logger.info(f"imp:{imp['name']} len:{len(imp['value'])}")
+        logger.info(f"feature:{feature['name']} len:{len(feature['value'])}")
 
 def feature_dim(vocabulary):
     dim = 0
@@ -184,7 +184,7 @@ def processing(train, test, processing_conf):
             total_output_cols += output_cols
 
 
-    assembler = VectorAssembler(inputCols=total_output_cols, outputCol='imp')
+    assembler = VectorAssembler(inputCols=total_output_cols, outputCol='feature')
     stages.append(assembler)
 
     #logger.info(f"stages_output_dict:{stages_output_dict}")
@@ -205,11 +205,11 @@ def processing(train, test, processing_conf):
     # 这边使用训练集的转换模型去转换测试集。
     test_tranfrom = model.transform(test)
 
-    v = train_tranfrom.select('imp').take(1)[0].feature
-    logger.info('imp vector size = %d', v.size)
+    v = train_tranfrom.select('feature').take(1)[0].feature
+    logger.info('feature vector size = %d', v.size)
     feature_dim_number = feature_dim(vocabulary)
     if v.size != feature_dim(vocabulary):
-        raise RuntimeError(f'imp vector size not match,'
+        raise RuntimeError(f'feature vector size not match,'
                            f' real({v.size}) != calc({feature_dim_number})')
 
 

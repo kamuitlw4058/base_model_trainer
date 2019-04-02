@@ -45,18 +45,24 @@ class AdidVecDataSource(DataSource):
 
 
     def _produce_data(self,output_path):
-        vector_size = 8
-        user_file = "hdfs:///user/model/extend_data/user_20190318.txt"
+        vector_size = 16
+        user_file = "hdfs:///user/model/extend_data/suning_gid_list.csv"
+        #user_file = "hdfs:///user/model/extend_data/user_20190318.txt"
         user_df = read_csv(user_file, spark=self._spark, has_header=False,
                            delimiter='\t',
-                           schema_names=['Id_Zid', 'imp', 'clk', 'imp_adid', 'clk_adid'])
+                           #schema_names=['Id_Zid', 'imp', 'clk', 'imp_adid', 'clk_adid']
+                            schema_names = ['Id_Zid',  'imp_adid']
+                           )
 
         print(f"read user from:{user_file}")
-        word_vec_file = "hdfs:///user/model/extend_data/ad_vec_1.txt"
+
+        word_vec_file = "hdfs:///user/model/extend_data/suning_gid_emb.csv"
+        # word_vec_file = "hdfs:///user/model/extend_data/ad_vec_1.txt"
         word_vec_df = read_csv(word_vec_file, spark=self._spark, has_header=False,
                                delimiter='\t',
                                schema_names=['adid', 'adid_vec'])
         print(f"read word_vecv from:{word_vec_file}")
+        word_vec_df.show(10,truncate=False)
         apply_udf = split_to_list_udf(" ", DoubleType()).get_udf()
         word_vec_df = word_vec_df.withColumn("adid_arr", apply_udf("adid_vec"))
         word_vec_list = word_vec_df.toPandas().to_dict('records')
@@ -69,14 +75,17 @@ class AdidVecDataSource(DataSource):
         apply_udf = list_dict_index_udf(word_vec_dict, [0.0 for i in range(vector_size)],
                                         output_type=ArrayType(DoubleType())).get_udf()
         user_df = user_df.withColumn("adid_vec_list", apply_udf('imp_adid'))
-        user_df = user_df.withColumn("adid_clk_vec_list", apply_udf('clk_adid'))
+        # user_df = user_df.withColumn("adid_clk_vec_list", apply_udf('clk_adid'))
         apply_udf = list_avg_udf(vector_size).get_udf()
         user_df = user_df.withColumn("adid_vec_avg", apply_udf('adid_vec_list'))
-        user_df = user_df.withColumn("adid_clk_vec_avg", apply_udf('adid_clk_vec_list'))
+        # user_df = user_df.withColumn("adid_clk_vec_avg", apply_udf('adid_clk_vec_list'))
         apply_udf = list_sum_udf(vector_size).get_udf()
         user_df = user_df.withColumn("adid_vec_sum", apply_udf('adid_vec_list'))
-        user_df = user_df.withColumn("adid_clk_vec_sum", apply_udf('adid_clk_vec_list'))
-        df = user_df.select(["Id_Zid", "adid_vec_avg","adid_vec_sum","adid_clk_vec_avg","adid_clk_vec_sum"])
+        # user_df = user_df.withColumn("adid_clk_vec_sum", apply_udf('adid_clk_vec_list'))
+        df = user_df.select(
+            # ["Id_Zid", "adid_vec_avg","adid_vec_sum","adid_clk_vec_avg","adid_clk_vec_sum"]
+            ["Id_Zid", "adid_vec_avg", "adid_vec_sum"]
+        )
         df.write.parquet(path=output_path, mode='overwrite')
         return  df
 

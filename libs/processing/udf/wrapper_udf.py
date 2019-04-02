@@ -135,5 +135,5 @@ class split_to_list_udf:
     def get_udf(self):
         @udf(ArrayType(self._type))
         def warpped_udf(col):
-            return [float(i) for i in str(col).split(self._split)]
+            return [float(i.strip()) for i in str(col).strip().split(self._split)]
         return warpped_udf

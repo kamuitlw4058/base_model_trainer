@@ -172,6 +172,7 @@ class RTBModelBaseDataSource(ClickHouseSQLDataSource):
         ]
         sql_builder = SQL()
         sql = sql_builder.table(RTB_ALL_TABLE_NAME).select(cols).where(filters).to_string()
+        print(sql)
         #logger.info(f"[{RTBModelBaseDataSource.get_type()}]:{self.name} - clk_imp_sql:{sql}")
         num = pd.read_sql(sql, self._engine)
         if num.empty:
